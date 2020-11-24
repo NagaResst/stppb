@@ -34,5 +34,6 @@ dict2 = {}
 # for k, v in dict1.items():
 #     dict2[v] = k
 #
+# noinspection PyRedeclaration
 dict2 = {v: k for k, v in dict1.items()}
 print(dict2)

@@ -17,9 +17,10 @@ Write-Host Starting work!
 
 
 #遍历接口列表  向表格输出数据  同时显示接口抓取进度
-foreach ($interf IN $interfacedata.data){
-    $data = Invoke-WebRequest -Uri "$($interfacedata.httpadd)/api/json/device/getInterfaceGraphs?interfaceName=$($interf.interfaceID)&graphName=utilization&isFluidic=true&period=Last_Month&apiKey=$($interfacedata.apikey)"  | ConvertFrom-Json
-	$summary = Invoke-WebRequest -Uri "$($interfacedata.httpadd)/api/json/device/getInterfaceSummary?interfaceName=$($interf.interfaceID)&apiKey=$($interfacedata.apikey)"  | ConvertFrom-Json
+foreach ($interf IN $interfacedata.data)
+{
+    $data = Invoke-WebRequest -Uri "$( $interfacedata.httpadd )/api/json/device/getInterfaceGraphs?interfaceName=$( $interf.interfaceID )&graphName=utilization&isFluidic=true&period=Last_Month&apiKey=$( $interfacedata.apikey )"  | ConvertFrom-Json
+    $summary = Invoke-WebRequest -Uri "$( $interfacedata.httpadd )/api/json/device/getInterfaceSummary?interfaceName=$( $interf.interfaceID )&apiKey=$( $interfacedata.apikey )"  | ConvertFrom-Json
     <#
     foreach是powershell提供的遍历函数  可以自动遍历括号内的列表
     ($interf IN $interfacedata.data) 此条将接口列表中的 data 部分单独提取出来作为 interf 对象使用 会遍历interf (即$interfacedata.data)中的所有内容  此函数中使用的时候使用 interf
@@ -36,9 +37,9 @@ foreach ($interf IN $interfacedata.data){
     Write-Output `t $data.consolidatedValues.'Tx Utilization'.'maxVal' | Out-File -Append -NoNewline "interface.xls"
     Write-Output `t $data.consolidatedValues.'Tx Utilization'.'avgVal' | Out-File -Append -NoNewline "interface.xls"
     Write-Output `t $data.consolidatedValues.'Tx Utilization'.'95thpercentileValue' | Out-File -Append -NoNewline "interface.xls"
-	Write-Host `n NO. $interf.sequence
+    Write-Host `n NO. $interf.sequence
     Write-Host `t $interf.device  -NoNewline
-	Write-Host `t $summary.intfDisplayName  -NoNewline
+    Write-Host `t $summary.intfDisplayName  -NoNewline
     Write-Host `t Rx-min $data.consolidatedValues.'Rx Utilization'.'minVal'  -NoNewline
     Write-Host `t Rx-max $data.consolidatedValues.'Rx Utilization'.'maxVal'  -NoNewline
     Write-Host `t Rx-avg $data.consolidatedValues.'Rx Utilization'.'avgVal'  -NoNewline
@@ -47,8 +48,8 @@ foreach ($interf IN $interfacedata.data){
     Write-Host `t Tx-max $data.consolidatedValues.'Tx Utilization'.'maxVal' -NoNewline
     Write-Host `t Tx-avg $data.consolidatedValues.'Tx Utilization'.'avgVal'  -NoNewline
     Write-Host `t Tx-95th $data.consolidatedValues.'Tx Utilization'.'95thpercentileValue'
-	#Write-Progress 提供一个可视化的进度条用于查看现在任务执行的进度
-    Write-Progress -Activity "Starting..." -PercentComplete $($interf.sequence / $interfacedata.data.Length * 100)  -CurrentOperation "$($interf.sequence) / $($interfacedata.data.Length )  Finished" -Status "Loading..."
-    }
+    #Write-Progress 提供一个可视化的进度条用于查看现在任务执行的进度
+    Write-Progress -Activity "Starting..." -PercentComplete $( $interf.sequence / $interfacedata.data.Length * 100 )  -CurrentOperation "$( $interf.sequence ) / $( $interfacedata.data.Length )  Finished" -Status "Loading..."
+}
 
 Write-Host `n "Report is complete!"
