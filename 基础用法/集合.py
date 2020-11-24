@@ -4,5 +4,4 @@ print(chars | newChars)
 print(chars & newChars)
 print(chars | newChars)
 print(chars ^ newChars)
-
-chars.pop()
+# 集合的运算符操作
