@@ -40,16 +40,22 @@ def jiecheng(n: int):
     return y
 
 
-x = int(input("你想求谁的阶乘"))
-print(jiecheng(x))
+# x = int(input("你想求谁的阶乘"))
+# print(jiecheng(x))
+
+test = "这是一个测试的字符串用来测试函数内通过global修改变量"
 
 
-def jiechengSum(m: int):
+def jiechengsum(m: int):
+    global test
+    test = "test的值已经被修改了"
     z = 0
     for i in range(1, m + 1):
         z += jiecheng(i)
-    return z
+    return z, i
 
 
 j = int(input("你想要谁的阶乘和"))
-print(jiechengSum(j))
+k = jiechengsum(j)
+print(k)
+# print(test)
