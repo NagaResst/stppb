@@ -37,8 +37,19 @@ def jiecheng(n: int):
     y = 1
     for i in range(1, n + 1):
         y *= i
-    return i
+    return y
 
 
 x = int(input("你想求谁的阶乘"))
 print(jiecheng(x))
+
+
+def jiechengSum(m: int):
+    z = 0
+    for i in range(1, m + 1):
+        z += jiecheng(i)
+    return z
+
+
+j = int(input("你想要谁的阶乘和"))
+print(jiechengSum(j))
