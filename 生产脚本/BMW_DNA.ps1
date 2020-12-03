@@ -14,7 +14,7 @@ function get_date($token)
 
 function pushDataToMsp($exdata)
 {
-    $createdate = [DateTime]::FromFileTime($exdata.lastOccurrence*10000 + 116444736000000000)
+    $createdate = [DateTime]::FromFileTime($exdata.lastOccurrence*10000 + 504911520000000000)
     $pushdata = '{"operation": {"details": {"subject": "EVT BWM DNA Attention-' + $( $exdata.category ) + '","status": "open","description": "Message:' + $( $displayeName ) + ' \nDevice:' + $( $exdata.deviceRole ) + '\nAreaCount:' + $( $exdata.areaCount ) + '\nBuildingCount:' + $( $exdata.buildingCount ) + '\nFloorCount:' + $( $exdata.floorCount ) + '\nDeviceCount:' + $( $exdata.deviceCount ) + '\nTime:' + $( $createdate ) + '","requester": "BMW_DNA","site": "BMW Common Site","account": "BMW","priority":"$($data.priority)"}}}'
     Invoke-WebRequest -Uri "https://{MSPIP}/sdpapi/request?format=json&data=$( $pushdata )" -Method Post -Headers @{ "contenttype" = "application/json"; "TECHNICIAN_KEY" = "" }
 }
