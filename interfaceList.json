@@ -1,0 +1,12 @@
+{
+  "httpadd": "http://localhost:8088",
+  "apikey": "",
+  "data": [
+    {
+      "sequence": "1",
+      "device": "deviceName",
+      "interfaceName": null,
+      "interfaceID": "interfaceID"
+    }
+  ]
+}
