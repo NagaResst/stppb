@@ -42,9 +42,6 @@ class SiteList(object):
         return response
 
 
-log = "log/" + str(datetime.date.today())
-
-
 def get_url():
     path = "urls.txt"
     with open(path, 'r') as urls:
@@ -62,6 +59,7 @@ for urls in site_list:
     urls_list.append(url)
 
 while True:
+    log = "log/" + str(datetime.date.today())
     # 重载列表 如果发生变化就重新初始化实例
     site_list2 = get_url()
     if site_list != site_list2:
