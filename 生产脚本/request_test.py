@@ -1,11 +1,12 @@
 import requests
-import time
 import datetime
+import time
+import os
 
 error_count = {}
 url_path = "url.txt"
 now_date = str(datetime.date.today())
-log = "/log/" + now_date
+log = "../log/" + now_date
 count = 0
 
 
@@ -39,8 +40,12 @@ def created_ticket(urls, page_code):
 
 site_list = get_url(url_path)
 while True:
+    if not os.path.exists(log + '/success.log'):
+        os.mknod(log + '/success.log')
+        os.mknod(log + '/failed.log')
+
     with open(log + '/success.log', 'a') as success:
-        with open(log + 'failed.log', 'a') as failed:
+        with open(log + '/failed.log', 'a') as failed:
             for url in site_list:
                 code = str(get_status_code(url))
                 if code == '200':
