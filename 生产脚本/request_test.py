@@ -1,62 +1,92 @@
-import requests
 import datetime
-import time
 import os
+import time
 
-error_count = {}
-url_path = "url.txt"
-now_date = str(datetime.date.today())
-log = "../log/" + now_date
-count = 0
+import requests
 
 
-def get_url(path):
+class SiteList(object):
+    def __init__(self, urls, status_code=0, count=0):
+        self.url = urls
+        self.code = status_code
+        self.count = count
+
+    @staticmethod
+    def get_status_code(urls):
+        try:
+            page = requests.get(urls)
+        except:
+            return '404'
+        return str(page.status_code)
+
+    @staticmethod
+    def add_error_count(count):
+        count += 1
+        return count
+
+    @staticmethod
+    def created_ticket(urls, page_code):
+        headers = {'content-type': 'application/json', 'TECHNICIAN_KEY': ''}
+
+        post_date = '''{'operation': {'details' : {
+                                               'subject' : 'Web Site Service Trouble',
+                                               'status' : 'open',
+                                               'description' :'Unable to connect to %s ,[%s]',
+                                               'requester' : 'Probe_BSU',
+                                               'site' : 'SAP-Suning Common Site',
+                                               'account' : 'SAP-Suning',
+                                               }
+                                   }
+                      }''' % (urls, page_code)
+        msp_api = 'https://hostip/sdpapi/request?format=json&data=' + post_date
+        response = requests.post(msp_api, headers, post_date)
+        print(response)
+        return response
+
+
+log = "log/" + str(datetime.date.today())
+
+
+def get_url():
+    path = "urls.txt"
     with open(path, 'r') as urls:
         site_url_str = urls.read()
         site_url = site_url_str.split(sep='\n')
-    urls.close()
+        urls.close()
     return site_url
 
 
-def add_error_count(urls):
-    global error_count
-    global count
-    count += 1
-    error_count[urls] = count
-    return error_count
+site_list = get_url()
+urls_list = []
+for urls in site_list:
+    url = SiteList(urls)
+    urls_list.append(url)
 
-
-def get_status_code(urls):
-    page = requests.get(urls)
-    return page.status_code
-
-
-def created_ticket(urls, page_code):
-    header = {}
-    post_date = '' + urls + '' + page_code + ''
-    response = requests.post('https://msp.deliverycenter.cn:8088', header, post_date)
-    return response
-
-
-site_list = get_url(url_path)
 while True:
-    if not os.path.exists(log + '/success.log'):
-        os.mknod(log + '/success.log')
-        os.mknod(log + '/failed.log')
+    # site_list = get_url()
+    if os.path.exists(log):
+        os.chdir(log)
+    else:
+        os.makedirs(log)
+        os.chdir(log)
 
-    with open(log + '/success.log', 'a') as success:
-        with open(log + '/failed.log', 'a') as failed:
-            for url in site_list:
-                code = str(get_status_code(url))
+    with open('success.log', 'a') as success:
+        with open('failed.log', 'a') as failed:
+            for url in urls_list:
+                # url = SiteList(url)
+                code = url.get_status_code(url.url)
                 if code == '200':
-                    success.write(str(datetime.datetime.now()) + '|success[' + code + ']|' + url)
+                    success.write(str(datetime.datetime.now()) + '|success[' + code + ']|' + url.url + '\n')
+                    url.count = 0
                 # elif code == '300' or code == '301' or code == '302':
                 #     pass
                 else:
-                    failed.write(str(datetime.datetime.now()) + '|failed[' + code + ']|' + url)
-                    add_error_count(url)
-                    if error_count[url] > 3:
-                        created_ticket(url, code)
-        failed.close()
-    success.close()
+                    failed.write(str(datetime.datetime.now()) + '|failed[' + code + ']|' + url.url + '\n')
+                    url.count = url.add_error_count(url.count)
+                    print('{}访问失败{}次'.format(url.url, url.count))
+                    if url.count == 3:
+                        created = url.created_ticket(url.url, code)
+            failed.close()
+        success.close()
+    os.chdir("../..")
     time.sleep(180)
