@@ -1,6 +1,6 @@
 import datetime
 import os
-import time
+from time import sleep
 
 import requests
 
@@ -25,17 +25,17 @@ class SiteList(object):
     @staticmethod
     def created_ticket(urls, page_code):
         headers = {'content-type': 'application/json', 'TECHNICIAN_KEY': ''}
-
+        now = str(datetime.datetime.now())
         post_date = '''{'operation': {'details' : {
                                                'subject' : 'Web Site Service Trouble',
                                                'status' : 'open',
-                                               'description' :'Unable to connect to %s ,[%s]',
+                                               'description' :'Unable to connect to %s ,[%s] at %s',
                                                'requester' : 'Probe_BSU',
                                                'site' : 'SAP-Suning Common Site',
                                                'account' : 'SAP-Suning',
                                                }
                                    }
-                      }''' % (urls, page_code)
+                      }''' % (urls, page_code, now)
         msp_api = 'https://hostip/sdpapi/request?format=json&data=' + post_date
         response = requests.post(msp_api, headers, post_date)
         print(response)
@@ -95,4 +95,4 @@ while True:
             failed.close()
         success.close()
     os.chdir("../..")
-    time.sleep(180)
+    sleep(180)
