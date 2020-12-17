@@ -6,7 +6,7 @@ import requests
 
 
 class SiteList(object):
-    def __init__(self, urls, status_code=0, count=0):
+    def __init__(self, urls, status_code='0', count=0):
         self.url = urls
         self.code = status_code
         self.count = count
@@ -14,13 +14,12 @@ class SiteList(object):
     def get_status_code(self):
         try:
             page = requests.get(self.url)
+            self.code = str(page.status_code)
         except:
             return 'time out'
-        return str(page.status_code)
 
     def add_error_count(self):
         self.count += 1
-        return self.count
 
     @staticmethod
     def created_ticket(urls, page_code):
@@ -48,24 +47,28 @@ def get_url():
         site_url_str = urls.read()
         site_url = site_url_str.split(sep='\n')
         urls.close()
+
     return site_url
 
 
+def init_object():
+    site_list = get_url()
+    urls_list = []
+    for urls in site_list:
+        url = SiteList(urls)
+        urls_list.append(url)
+    return urls_list, site_list
+
+
 # 初始化实例
-site_list = get_url()
-urls_list = []
-for urls in site_list:
-    url = SiteList(urls)
-    urls_list.append(url)
+urls_list, site_list = init_object()
 
 while True:
     log = "log/" + str(datetime.date.today())
     # 重载列表 如果发生变化就重新初始化实例
     site_list2 = get_url()
     if site_list != site_list2:
-        for urls in site_list2:
-            url = SiteList(urls)
-            urls_list.append(url)
+        urls_list, site_list = init_object()
     # 判断日志文件夹是否存在，如果不存在就创建
     # 只判断了文件夹，没有判断日志文件，如果存在文件夹不存在日志，在linux上的兼容性没有测试，不排除会出问题
     if os.path.exists(log):
@@ -78,20 +81,20 @@ while True:
         with open('failed.log', 'a') as failed:
             for url in urls_list:
                 # url = SiteList(url)
-                code = url.get_status_code()
-                if code == '200':
-                    success.write(str(datetime.datetime.now()) + '|success[' + code + ']|' + url.url + '\n')
+                url.get_status_code()
+                if url.code == '200':
+                    success.write(str(datetime.datetime.now()) + '|success[' + url.code + ']|' + url.url + '\n')
                     # 如果可以访问就初始化失败次数
                     url.count = 0
                 # elif code == '300' or code == '301' or code == '302':
                 #     pass
                 else:
-                    failed.write(str(datetime.datetime.now()) + '|failed[' + code + ']|' + url.url + '\n')
-                    url.count = url.add_error_count()
+                    failed.write(str(datetime.datetime.now()) + '|failed[' + url.code + ']|' + url.url + '\n')
+                    url.add_error_count()
                     print('{}访问失败{}次'.format(url.url, url.count))
                     # 访问失败3次就到MSP创建工单
                     if url.count == 3:
-                        created = url.created_ticket(url.url, code)
+                        created = url.created_ticket(url.url, url.code)
             failed.close()
         success.close()
     os.chdir("../..")
