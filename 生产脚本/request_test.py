@@ -80,21 +80,19 @@ while True:
     with open('success.log', 'a') as success:
         with open('failed.log', 'a') as failed:
             for url in urls_list:
-                # url = SiteList(url)
                 url.get_status_code()
-                if url.code == '200':
-                    success.write(str(datetime.datetime.now()) + '|success[' + url.code + ']|' + url.url + '\n')
-                    # 如果可以访问就初始化失败次数
-                    url.count = 0
-                # elif code == '300' or code == '301' or code == '302':
-                #     pass
-                else:
-                    failed.write(str(datetime.datetime.now()) + '|failed[' + url.code + ']|' + url.url + '\n')
-                    url.add_error_count()
-                    print('{}访问失败{}次'.format(url.url, url.count))
-                    # 访问失败3次就到MSP创建工单
-                    if url.count == 3:
-                        created = url.created_ticket(url.url, url.code)
+                if url.url != '':
+                    if url.code == '200':
+                        success.write(str(datetime.datetime.now()) + '|success[' + url.code + ']|' + url.url + '\n')
+                        # 如果以前不可以访问，现在可以访问就初始化失败次数
+                        url.count = 0
+                    else:
+                        failed.write(str(datetime.datetime.now()) + '|failed[' + url.code + ']|' + url.url + '\n')
+                        url.add_error_count()
+                        print('{}访问失败{}次'.format(url.url, url.count))
+                        # 访问失败3次就到MSP创建工单
+                        if url.count == 3:
+                            created = url.created_ticket(url.url, url.code)
             failed.close()
         success.close()
     os.chdir("../..")
