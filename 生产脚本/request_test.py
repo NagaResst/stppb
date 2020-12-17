@@ -44,11 +44,12 @@ class SiteList(object):
 def get_url():
     path = "urls.txt"
     with open(path, 'r') as urls:
-        site_url_str = urls.read().strip()
+        site_url_str = urls.read()
         site_url = site_url_str.split(sep='\n')
+        site_list = [i for i in site_url if i != '']
         urls.close()
     path.strip()
-    return site_url
+    return site_list
 
 
 def init_object():
