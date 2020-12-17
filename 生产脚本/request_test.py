@@ -48,7 +48,6 @@ def get_url():
         site_url = site_url_str.split(sep='\n')
         site_list = [i for i in site_url if i != '']
         urls.close()
-    path.strip()
     return site_list
 
 
