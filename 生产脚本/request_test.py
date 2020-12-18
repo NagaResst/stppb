@@ -72,18 +72,18 @@ while True:
             urls_list, site_list = init_object()
         # 判断日志文件夹是否存在，如果不存在就创建
         # 只判断了文件夹，没有判断日志文件，如果存在文件夹不存在日志，在linux上的兼容性没有测试，不排除会出问题
-        runlog.write('reload list{}'.format(datetime.datetime.now()) + '\n')
+        runlog.write('reload list | {}'.format(datetime.datetime.now()) + '\n')
         if os.path.exists(log):
             os.chdir(log)
         else:
             os.makedirs(log)
             os.chdir(log)
-        runlog.write('ready for open file{}'.format(datetime.datetime.now()) + '\n')
+        runlog.write('ready for open file | {}'.format(datetime.datetime.now()) + '\n')
         with open('success.log', 'a') as success:
             with open('failed.log', 'a') as failed:
                 for url in urls_list:
                     url.get_status_code()
-                    runlog.write('access web server{}'.format(datetime.datetime.now()) + '\n')
+                    runlog.write('access web server | {}'.format(datetime.datetime.now()) + '\n')
                     if url.code == '200':
                         success.write(str(datetime.datetime.now()) + '|success[' + url.code + ']|' + url.url + '\n')
                         # 如果以前不可以访问，现在可以访问就初始化失败次数
@@ -97,8 +97,8 @@ while True:
                             created = url.created_ticket(url.url, url.code)
             failed.close()
         success.close()
-        runlog.write('close file{}'.format(datetime.datetime.now()) + '\n')
+        runlog.write('close file | {}'.format(datetime.datetime.now()) + '\n')
         os.chdir("../..")
-        runlog.write('work done{}'.format(datetime.datetime.now()) + '\n')
+        runlog.write('work done | {}'.format(datetime.datetime.now()) + '\n')
     runlog.close()
     sleep(180)
