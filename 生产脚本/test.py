@@ -1,18 +1,15 @@
 import datetime
 import os
-import threading
 from time import sleep
 
 import requests
 
 
-class SiteList(threading.Thread):
+class SiteList(object):
     def __init__(self, urls, status_code='0', count=0):
-        threading.Thread.__init__(self)
         self.url = urls
         self.code = status_code
         self.count = count
-        self.setDaemon(True)
 
     def get_status_code(self):
         try:
@@ -43,34 +40,21 @@ class SiteList(threading.Thread):
         print(response)
         return response
 
-    def run(self, success, failed):
+    def test_url(self, success, failed):
         self.get_status_code()
         if self.code == '200':
-            success.write(str(datetime.datetime.now()) + '|success[' + self.code + ']|' + self.url + '\n')
+            success.write(str(datetime.datetime.now()) + '|success[' + self.code + ']|' + url.url + '\n')
             success.flush()
             # 如果以前不可以访问，现在可以访问就初始化失败次数
             self.count = 0
         else:
-            failed.write(str(datetime.datetime.now()) + '|failed[' + self.code + ']|' + self.url + '\n')
+            failed.write(str(datetime.datetime.now()) + '|failed[' + self.code + ']|' + url.url + '\n')
             failed.flush()
             self.add_error_count()
             print('{}访问失败{}次'.format(self.url, self.count) + '\n')
             # 访问失败3次就到MSP创建工单
             if self.count == 3:
                 self.created_ticket(self.url, self.code)
-
-
-class MainD(threading.Thread):
-    def __init__(self, sitelist):
-        threading.Thread.__init__(self)
-        self.sitelist = sitelist
-
-    def run(self):
-        self.sitelist.start()
-        try:
-            self.sitelist.join(30)
-        except:
-            pass
 
 
 def get_url():
@@ -83,24 +67,23 @@ def get_url():
     return site_list
 
 
-def init_object(site_list_old=None):
+def init_object():
     site_list = get_url()
     urls_list = []
-    if site_list != site_list_old:
-        for urls in site_list:
-            url = SiteList(urls)
-            urls_list.append(url)
-
+    for urls in site_list:
+        url = SiteList(urls)
+        urls_list.append(url)
     return urls_list, site_list
 
 
-site_list = get_url()
-urls_list = []
+urls_list, site_list = init_object()
 while True:
     with open('run.log', 'a')as runlog:
         log = "log/" + str(datetime.date.today())
         # 重载列表 如果发生变化就重新初始化实例
-        urls_list, site_list = init_object(site_list)
+        site_list_new = get_url()
+        if site_list != site_list_new:
+            urls_list, site_list = init_object()
         # 判断日志文件夹是否存在，如果不存在就创建
         # 只判断了文件夹，没有判断日志文件，如果存在文件夹不存在日志，在linux上的兼容性没有测试，不排除会出问题
         runlog.write('reload list | {}'.format(datetime.datetime.now()) + '\n')
@@ -114,7 +97,7 @@ while True:
         with open('success.log', 'a') as success:
             with open('failed.log', 'a') as failed:
                 for url in urls_list:
-                    url.start()
+                    url.test_url(success, failed)
             failed.close()
         success.close()
         runlog.write('close file | {}'.format(datetime.datetime.now()) + '\n')
