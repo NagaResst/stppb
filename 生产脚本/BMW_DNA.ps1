@@ -1,6 +1,6 @@
 function get_token()
 {
-    $token = invoke-webrequest -Uri "https://{IP}/dna/system/api/v1/auth/token" -headers @{  } -ContentType "application/json"
+    $token = invoke-webrequest -Uri "https://{IP}/dna/system/api/v1/auth/token" -headers @{ } -ContentType "application/json"
     return $token
 }
 
@@ -19,3 +19,33 @@ function pushDataToMsp($exdata)
     Invoke-WebRequest -Uri "https://{MSPIP}/sdpapi/request?format=json&data=$( $pushdata )" -Method Post -Headers @{ "contenttype" = "application/json"; "TECHNICIAN_KEY" = "" }
 }
 
+
+
+$token = get_token
+$dnadata = get_date($token)
+$alarmlist = @()
+
+foreach ($data in $dnadata.response)
+{
+    $alarmlist += $( data.lastOccurrence )
+}
+
+foreach ($exdata in $dnadata.response)
+{
+    pushDataToMsp($exdata)
+}
+
+
+Start-sleep -s 3600
+
+for ($i = 1; $i -gt 0; $i++) {
+    $newdnadata = get_date($token)
+    foreach ($newdata in $newdnadata.response)
+    {
+        if ($newdata.lastOccurrence -notin $alarmlist)
+        {
+            pushDataToMsp($newdata)
+        }
+    }
+    Start-sleep -s 3600
+}
