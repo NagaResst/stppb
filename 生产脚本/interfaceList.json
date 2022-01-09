@@ -1,0 +1,13 @@
+{
+  "//": "这个文件是interface.ps1的列表文件，两个文件需要配套使用",
+  "httpadd": "http://localhost:8088",
+  "apikey": "",
+  "data": [
+    {
+      "sequence": "1",
+      "device": "deviceName",
+      "interfaceName": null,
+      "interfaceID": "interfaceID"
+    }
+  ]
+}

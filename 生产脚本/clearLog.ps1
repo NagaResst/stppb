@@ -1,0 +1,1 @@
+Get-ChildItem C:\Users\Naga\Desktop\新建文件夹 -Recurse |Where-Object {$_.name -like "*.log"} | clear-content
