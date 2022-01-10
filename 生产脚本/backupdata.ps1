@@ -1,3 +1,4 @@
+#! /bin/pwsh
 $now=get-date -Format "yyyy-MM-dd"
 # 创建新的文件夹路径
 New-Item -Path "d:\backupdata\$now" -Type Directory
