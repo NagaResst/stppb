@@ -1,7 +1,7 @@
 [Unit]
 Description= bbway-cloud-gateway
-After=network.target
-Before=bbway-cloud-gateway.service
+After=network.target bbway-job-service.service
+# Before=bbway-cloud-gateway.service
 
 [Service]
 ExecStart=/opt/java/bin/java -jar /home/microservice/cms/bbway-cloud-gateway.jar --spring.profiles.active=dev
