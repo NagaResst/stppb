@@ -16,7 +16,7 @@ class SiteList(object):
         try:
             page = requests.get(self.url)
             self.code = str(page.status_code)
-        except:
+        except Exception:
             self.code = 'time out'
 
     # 如果站点无法访问那么在访问次数上+1
@@ -25,8 +25,7 @@ class SiteList(object):
 
     @staticmethod
     def created_ticket(urls, page_code):
-        # 当网站不可访问时用来创建工单的函数
-        # 需要使用MSP的技术员密钥
+        # 当网站不可访问时用来创建工单的函数 需要使用MSP的技术员密钥
         headers = {'content-type': 'application/json', 'TECHNICIAN_KEY': ''}
         now = str(datetime.datetime.now())
         post_date = '''{'operation': {'details' : {

@@ -1,6 +1,6 @@
 [Unit]
 Description= bbway-cloud-gateway
-After=network.target bbway-job-service.service
+After=network.target
 # Before=bbway-cloud-gateway.service
 
 [Service]
