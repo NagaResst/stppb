@@ -1,10 +1,10 @@
 #!/bin/bash
-datenow=`date +%Y-%m-%d`
+datenow=$(date +%Y-%m-%d)
 mysqlpd='password'
 dip='ip address'
 dport='port'
 spath='/path/'
-backupdb=(databases1 [databases2])
+backupdb=(databases1 databases2)
 
 mkdir -p $spath/$datenow
 for db in ${backupdb[*]}
