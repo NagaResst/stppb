@@ -16,6 +16,7 @@
 import os
 import shutil
 import re
+import zipfile
 
 
 class Service(object):
@@ -25,6 +26,11 @@ class Service(object):
         self.install_path = path
         self.path = path
         self.env = None
+        self.boots = 'BOOT-INF/classes/bootstrap.yml'
+        self.nacos_addr = None
+        self.nacos_user = None
+        self.nacos_passwd = None
+        self.nacos_namespace = None
         print("已经识别到文件 " + self.file)
 
     def distribute_file(self):
@@ -37,17 +43,20 @@ class Service(object):
         # shutil.move(self.file, self.service)
         print("服务 " + self.service + "文件已经分发。")
 
-    def modify_bootstrap(self, tos):
-        if tos == 'Linux':
-            self.modify_bu_linux()
-        elif tos == 'Windows':
-            self.modify_bu_windows()
-
-    def modify_bu_linux(self):
-        return 0
-
-    def modify_bu_windows(self):
-        return 0
+    def modify_bootstrap(self):
+        with zipfile.ZipFile(self.file, 'a') as zf:
+            zf.extract(self.boots, '.')
+            with open(self.boots, 'r+') as conn:
+                text = conn.read()
+                newtext = re.sub(r'server-addr: (.*)', ('server-addr: ' + self.nacos_addr), text)
+                newtext = re.sub(r'namespace: (.*)', ('namespace: ' + self.nacos_namespace), newtext)
+                newtext = re.sub(r'username: (.*)', ('username: ' + self.nacos_user), newtext)
+                newtext = re.sub(r'password: ENC(.*)', ('password: ENC(%s)' % self.nacos_passwd), newtext)
+                conn.seek(0, 0)
+                conn.write(newtext)
+                conn.close()
+            zf.write(self.boots)
+            zf.close()
 
     def systemd_units(self):
         unitFile = """[Unit]
@@ -125,7 +134,7 @@ for file in need_install_files:
         file.nacos_user = config['nacos_user']
         file.nacos_passwd = config['nacos_passwd']
         file.nacos_namespace = config['nacos_namespace']
-        file.modify_bootstrap(ostype)
+        file.modify_bootstrap()
     file.env = env
     file.distribute_file()
     file.install_service(ostype)
