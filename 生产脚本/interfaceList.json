@@ -6,7 +6,7 @@
     {
       "sequence": "1",
       "device": "deviceName",
-      "interfaceName": null,
+      "interfaceName": "null",
       "interfaceID": "interfaceID"
     }
   ]
