@@ -1,8 +1,6 @@
 #! /bin/python3
 # {
 #   "install_path": "/home",
-# 	"env": ["java", "nacos", "redis", "nginx"],
-# 	"service": ["bbway-cloud-gateway", "user-center-service", "bbway-cloud-cas"],
 # 	"modify_bootstrap": "True",
 # 	"nacos_addr": "192.168.100.100:8848",
 # 	"nacos_namespace": "namespace-test-namespace",
@@ -36,7 +34,7 @@ class Service(object):
     def distribute_file(self):
         cdir = self.file.split('.')
         self.service = cdir[0]
-        os.mkdir(self.path + '/' + self.service)
+        os.mkdir((self.path + '/' + self.service))
         self.install_path = self.path + '/' + self.service
         self.path = self.install_path + '/' + self.file
         shutil.copy(self.file, self.path)
@@ -46,17 +44,19 @@ class Service(object):
     def modify_bootstrap(self):
         with zipfile.ZipFile(self.file, 'a') as zf:
             zf.extract(self.boots, '.')
-            with open(self.boots, 'r+') as conn:
+            with open(self.boots, 'r+', encoding='utf-8') as conn:
                 text = conn.read()
                 newtext = re.sub(r'server-addr: (.*)', ('server-addr: ' + self.nacos_addr), text)
                 newtext = re.sub(r'namespace: (.*)', ('namespace: ' + self.nacos_namespace), newtext)
-                newtext = re.sub(r'username: (.*)', ('username: ' + self.nacos_user), newtext)
+                newtext = re.sub(r'username: (.*)', ('username: ENC(%s)' + self.nacos_user), newtext)
                 newtext = re.sub(r'password: ENC(.*)', ('password: ENC(%s)' % self.nacos_passwd), newtext)
                 conn.seek(0, 0)
                 conn.write(newtext)
                 conn.close()
             zf.write(self.boots)
             zf.close()
+        os.rmdir('BOOT-INF')
+        print("服务%s 配置已经修改完成" % self.service)
 
     def systemd_units(self):
         unitFile = """[Unit]
@@ -75,7 +75,7 @@ RestartSec=30s
 [Install]
 WantedBy=multi-user.target""" % (self.service, self.env, self.path, self.service)
         unitsPath = '/var/lib/systemd/system/' + self.service + '.service'
-        with open(unitsPath, 'w') as unit:
+        with open(unitsPath, 'w', encoding='utf-8') as unit:
             unit.write(unitFile)
             unit.close()
 
@@ -93,11 +93,11 @@ WantedBy=multi-user.target""" % (self.service, self.env, self.path, self.service
   </log>
 </service>
         """ % (self.service, self.service, self.install_path, self.file)
-        with open((self.install_path + '/' + self.service + '-service.xml'), 'w') as windowsService:
+        with open((self.install_path + '/' + self.service + '.xml'), 'w', encoding='utf-8') as windowsService:
             windowsService.write(ServiceFile)
             windowsService.close()
         cupath = os.getcwd()
-        os.system('cd %s && %s && cd %s ' % (self.install_path, (self.service + '-service.exe install'), cupath))
+        os.system('cd %s && %s && cd %s ' % (self.install_path, (self.service + '.exe install'), cupath))
 
     def install_service(self, tos):
         if tos == 'Linux':
@@ -117,29 +117,32 @@ def get_system_type():
         return 'Windows', None
 
 
-with open(r'install_config.json', 'r', encoding="utf-8") as config_file:
+with open(r'install_config.json', 'r') as config_file:
     config = eval(config_file.read())
     print("安装配置已经读取")
     config_file.close()
+# config['install_path'] = config['install_path'].replace("\\", '/')
 ostype, env = get_system_type()
-if ostype == 'Linux':
-    os.system('rpm -ivh *zip*.rpm')
+# if ostype == 'Linux':
+#     os.system('rpm -ivh *zip*.rpm')
 need_install_files = os.listdir()
 print("识别到文件" + str(len(need_install_files)) + " 个。")
 for file in need_install_files:
-    file = Service(file)
-    file.path = config['install_path']
-    if config['modify_bootstrap'] == "True":
-        file.nacos_addr = config['nacos_addr']
-        file.nacos_user = config['nacos_user']
-        file.nacos_passwd = config['nacos_passwd']
-        file.nacos_namespace = config['nacos_namespace']
-        file.modify_bootstrap()
-    file.env = env
-    file.distribute_file()
-    file.install_service(ostype)
-    if ostype == 'Linux':
-        os.system('systemctl daemon-reload')
-        os.system('systemctl enable --now ' + file.service)
-        print("服务 " + file.service + " 已经部署完成。")
-print("所有服务已经部署完毕，请按任意键退出")
+    if (file.split('.'))[-1] == 'jar':
+        file = Service(file)
+        file.path = config['install_path']
+        if config['modify_bootstrap'] == "True":
+            file.nacos_addr = config['nacos_addr']
+            file.nacos_user = config['nacos_user']
+            file.nacos_passwd = config['nacos_passwd']
+            file.nacos_namespace = config['nacos_namespace']
+            file.modify_bootstrap()
+        file.env = env
+        print("环境读取成功")
+        file.distribute_file()
+        file.install_service(ostype)
+        if ostype == 'Linux':
+            os.system('systemctl daemon-reload')
+            os.system('systemctl enable --now ' + file.service)
+            print("服务 " + file.service + " 已经部署完成。")
+input("所有服务已经部署完毕，请按任意键退出")
