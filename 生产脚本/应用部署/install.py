@@ -42,20 +42,27 @@ class Service(object):
         print("服务 " + self.service + "文件已经分发。")
 
     def modify_bootstrap(self):
-        with zipfile.ZipFile(self.file, 'a') as zf:
-            zf.extract(self.boots, '.')
-            with open(self.boots, 'r+', encoding='utf-8') as conn:
-                text = conn.read()
-                newtext = re.sub(r'server-addr: (.*)', ('server-addr: ' + self.nacos_addr), text)
-                newtext = re.sub(r'namespace: (.*)', ('namespace: ' + self.nacos_namespace), newtext)
-                newtext = re.sub(r'username: (.*)', ('username: ENC(%s)' + self.nacos_user), newtext)
-                newtext = re.sub(r'password: ENC(.*)', ('password: ENC(%s)' % self.nacos_passwd), newtext)
-                conn.seek(0, 0)
-                conn.write(newtext)
-                conn.close()
-            zf.write(self.boots)
+        with zipfile.ZipFile(self.file, 'r') as zf:
+            zf.extractall(self.boots, 'temp')
             zf.close()
-        os.rmdir('BOOT-INF')
+        with open(self.boots, 'r+', encoding='utf-8') as conn:
+            text = conn.read()
+            newtext = re.sub(r'server-addr: (.*)', ('server-addr: ' + self.nacos_addr), text)
+            newtext = re.sub(r'namespace: (.*)', ('namespace: ' + self.nacos_namespace), newtext)
+            newtext = re.sub(r'username: (.*)', ('username: ENC(%s)' + self.nacos_user), newtext)
+            newtext = re.sub(r'password: ENC(.*)', ('password: ENC(%s)' % self.nacos_passwd), newtext)
+            conn.seek(0, 0)
+            conn.write(newtext)
+            conn.close()
+        with zipfile.ZipFile('newfile.jar', 'w', zipfile.ZIP_DEFLATED) as newzf:
+            tpath = os.getcwd() + '/temp/'
+            for dir_path, dir_name, file_names in os.walk(tpath):
+                file_path = dir_path.replace(tpath, '')
+                file_path = file_path and file_path + os.sep or ''
+                for file_name in file_names:
+                    newzf.write(os.path.join(dir_path, file_name), file_path + file_name)
+            newzf.close()
+        shutil.rmtree('temp')
         print("服务%s 配置已经修改完成" % self.service)
 
     def systemd_units(self):
