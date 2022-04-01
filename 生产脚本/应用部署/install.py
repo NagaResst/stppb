@@ -1,4 +1,5 @@
 #! /bin/python3
+# -*- coding:UTF-8 -*-
 # {
 #   "install_path": "/home",
 # 	"modify_bootstrap": "True",
@@ -24,39 +25,58 @@ class Service(object):
         self.install_path = path
         self.path = path
         self.env = None
-        self.boots = 'BOOT-INF/classes/bootstrap.yml'
+        self.boots = 'temp/BOOT-INF/classes/bootstrap.yml'
         self.nacos_addr = None
         self.nacos_user = None
         self.nacos_passwd = None
         self.nacos_namespace = None
+        self.active = None
+        print('========== Start deploy ==========')
         print("已经识别到文件 " + self.file)
 
     def distribute_file(self):
         cdir = self.file.split('.')
         self.service = cdir[0]
-        os.mkdir((self.path + '/' + self.service))
+        try:
+            os.makedirs((self.path + '/' + self.service))
+        except:
+            print("服务部署路径已经存在")
         self.install_path = self.path + '/' + self.service
         self.path = self.install_path + '/' + self.file
-        shutil.copy(self.file, self.path)
-        # shutil.move(self.file, self.service)
+        try:
+            shutil.copy(self.file, self.path)
+        except:
+            print("服务文件已经存在，重新部署")
+            os.remove(self.path)
+            shutil.copy(self.file, self.path)
         print("服务 " + self.service + "文件已经分发。")
 
     def modify_bootstrap(self):
-        with zipfile.ZipFile(self.file, 'a') as zf:
-            zf.extract(self.boots, '.')
-            with open(self.boots, 'r+', encoding='utf-8') as conn:
-                text = conn.read()
-                newtext = re.sub(r'server-addr: (.*)', ('server-addr: ' + self.nacos_addr), text)
-                newtext = re.sub(r'namespace: (.*)', ('namespace: ' + self.nacos_namespace), newtext)
-                newtext = re.sub(r'username: (.*)', ('username: ENC(%s)' + self.nacos_user), newtext)
-                newtext = re.sub(r'password: ENC(.*)', ('password: ENC(%s)' % self.nacos_passwd), newtext)
-                conn.seek(0, 0)
-                conn.write(newtext)
-                conn.close()
-            zf.write(self.boots)
+        with zipfile.ZipFile(self.file, 'r') as zf:
+            zf.extractall('temp')
             zf.close()
-        os.rmdir('BOOT-INF')
-        print("服务%s 配置已经修改完成" % self.service)
+        with open(self.boots, 'r+') as conn:
+            text = conn.read()
+            newtext = re.sub(r'server-addr: (.*)', ('server-addr: ' + self.nacos_addr), text)
+            newtext = re.sub(r'namespace: (.*)', ('namespace: ' + self.nacos_namespace), newtext)
+            newtext = re.sub(r'username: (.*)', ('username: ENC(%s)' + self.nacos_user), newtext)
+            newtext = re.sub(r'password: ENC(.*)', ('password: ENC(%s)' % self.nacos_passwd), newtext)
+            newtext = re.sub(r'active: (.*)', ('active: (%s)' % self.active), newtext)
+            conn.seek(0, 0)
+            conn.write(newtext)
+            conn.close()
+        with zipfile.ZipFile('newfile.jar', 'w', zipfile.ZIP_DEFLATED) as newzf:
+            tpath = os.getcwd() + '/temp/'
+            for dir_path, dir_name, file_names in os.walk(tpath):
+                file_path = dir_path.replace(tpath, '')
+                file_path = file_path and file_path + os.sep or ''
+                for file_name in file_names:
+                    newzf.write(os.path.join(dir_path, file_name), file_path + file_name)
+            newzf.close()
+        shutil.rmtree('temp')
+        os.remove(self.file)
+        os.rename('newfile.jar', self.file)
+        print("服务%s 的 bootstrap 已经修改完成" % self.service)
 
     def systemd_units(self):
         unitFile = """[Unit]
@@ -78,6 +98,7 @@ WantedBy=multi-user.target""" % (self.service, self.env, self.path, self.service
         with open(unitsPath, 'w', encoding='utf-8') as unit:
             unit.write(unitFile)
             unit.close()
+            print("服务 " + self.service + " 的unit已经写入")
 
     def winsw(self):
         service_exec = self.install_path + '/' + self.service + '-service.exe'
@@ -98,11 +119,11 @@ WantedBy=multi-user.target""" % (self.service, self.env, self.path, self.service
             windowsService.close()
         cupath = os.getcwd()
         os.system('cd %s && %s && cd %s ' % (self.install_path, (self.service + '.exe install'), cupath))
+        print("服务 " + self.service + " 的Service已经写入")
 
     def install_service(self, tos):
         if tos == 'Linux':
             self.systemd_units()
-            print("服务 " + self.service + " 已经写入")
         elif tos == 'Windows':
             self.winsw()
             print("")
@@ -112,6 +133,9 @@ def get_system_type():
     if os.name == 'posix':
         javapath0 = str(os.popen('whereis java').readlines())
         javapath = re.findall(r": (.*)\\", javapath0)
+        if len(javapath) == 0:
+            input('本机没有安装java环境，按回车退出')
+            quit()
         return 'Linux', javapath[0]
     elif os.name == 'nt':
         return 'Windows', None
@@ -121,11 +145,8 @@ with open(r'install_config.json', 'r') as config_file:
     config = eval(config_file.read())
     print("安装配置已经读取")
     config_file.close()
-# config['install_path'] = config['install_path'].replace("\\", '/')
 ostype, env = get_system_type()
-# if ostype == 'Linux':
-#     os.system('rpm -ivh *zip*.rpm')
-need_install_files = os.listdir()
+need_install_files = os.listdir(os.getcwd())
 print("识别到文件" + str(len(need_install_files)) + " 个。")
 for file in need_install_files:
     if (file.split('.'))[-1] == 'jar':
@@ -136,13 +157,14 @@ for file in need_install_files:
             file.nacos_user = config['nacos_user']
             file.nacos_passwd = config['nacos_passwd']
             file.nacos_namespace = config['nacos_namespace']
+            file.active = config['jar_actived']
             file.modify_bootstrap()
         file.env = env
-        print("环境读取成功")
         file.distribute_file()
         file.install_service(ostype)
         if ostype == 'Linux':
             os.system('systemctl daemon-reload')
             os.system('systemctl enable --now ' + file.service)
             print("服务 " + file.service + " 已经部署完成。")
-input("所有服务已经部署完毕，请按任意键退出")
+print('==================================')
+input("所有服务已经部署完毕，请按回车退出")
