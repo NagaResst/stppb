@@ -12,15 +12,17 @@ class Service(object):
         self.file = filename
         self.service = None
         self.boots = 'temp/BOOT-INF/classes/bootstrap.yml'
-        self.nacos_addr = 'ip address'
-        self.nacos_user = 'ENC(username)'
-        self.nacos_passwd = 'ENC(password)'
-        self.nacos_namespace = 'namespace'
-        self.active = 'test'
+        self.nacos_addr = '10.90.57.162:8848'
+        self.nacos_user = 'ENC(DTuqnXgSW6QMPTm2cB0mRw==)'
+        self.nacos_passwd = 'ENC(DTuqnXgSW6QMPTm2cB0mRw==)'
+        self.nacos_namespace = '78de4221-7208-4ed7-b559-6a10ad09a460'
+        self.active = 'prod'
         print('========== Start modify ==========')
         print("已经识别到文件 " + self.file)
 
     def modify_bootstrap(self):
+        cdir = self.file.split('.')
+        self.service = cdir[0]
         with zipfile.ZipFile(self.file, 'r') as zf:
             zf.extractall('temp')
             zf.close()
@@ -62,7 +64,7 @@ def load_deploy_list():
     deploy_list = []
     for deploy_file in need_install_files:
         filesname = deploy_file.split('.')
-        if filesname[1] == 'jar':
+        if filesname[-1] == 'jar':
             deploy_list.append(deploy_file)
     print("识别到文件" + str(len(deploy_list)) + " 个。")
     return deploy_list

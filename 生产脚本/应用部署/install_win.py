@@ -179,7 +179,7 @@ def load_deploy_list():
     deploy_list = []
     for deploy_file in need_install_files:
         filesname = deploy_file.split('.')
-        if filesname[1] == 'jar':
+        if filesname[-1] == 'jar':
             deploy_list.append(deploy_file)
     print("识别到文件" + str(len(deploy_list)) + " 个。")
     return deploy_list
