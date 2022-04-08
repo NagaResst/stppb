@@ -28,7 +28,7 @@ function get_date($token)
     $dnaData = invoke-webrequest -Uri "https://host/api/assurance/v1/issue/global" -Method Post -Body '{"filters":{}, "issueStatus":"active"}' -headers @{ "startTime" = "$( $start )"; "endTime" = "$( $end )"; "x-auth-token" = "$( $token )" } -ContentType "application/json" | ConvertFrom-Json
     return $dnaData
 }
-将查询到的数据推送到MSP
+# 将查询到的数据推送到MSP
 function pushDataToMsp($exdata)
 {
     #$createdate = [DateTime]::FromFileTime($exdata.lastOccurrence*10000 + 504911520000000000)

@@ -4,6 +4,7 @@ import os
 from time import sleep
 import requests
 
+
 # 定义站点列表这个类 需要的内容包括http状态码和访问次数，以及对应的方法
 class SiteList(object):
     def __init__(self, urls, status_code='0', count=0):
@@ -90,7 +91,7 @@ def init_object(site_list_old=None):
 urls_list, site_list = init_object()
 
 while True:
-    with open('run.log', 'a')as runlog:
+    with open('run.log', 'a') as runlog:
         log = "log/" + str(datetime.date.today())
         # 重载列表 如果发生变化就重新初始化实例
         site_list_new = get_url()
