@@ -2,7 +2,6 @@
 # -*- coding:UTF-8 -*-
 
 import os
-import shutil
 import zipfile
 import yaml
 
@@ -11,11 +10,11 @@ class Service(object):
     def __init__(self, filename):
         self.file = filename
         self.service = None
-        self.boots = 'temp/BOOT-INF/classes/bootstrap.yml'
-        self.nacos_addr = '10.90.57.162:8848'
-        self.nacos_user = 'ENC(DTuqnXgSW6QMPTm2cB0mRw==)'
-        self.nacos_passwd = 'ENC(DTuqnXgSW6QMPTm2cB0mRw==)'
-        self.nacos_namespace = '78de4221-7208-4ed7-b559-6a10ad09a460'
+        self.boots = 'BOOT-INF/classes/bootstrap.yml'
+        self.nacos_addr = 'ip'
+        self.nacos_user = 'ENC(username)'
+        self.nacos_passwd = 'ENC(password)'
+        self.nacos_namespace = 'namespace-nacos-namespace'
         self.active = 'prod'
         print('========== Start modify ==========')
         print("已经识别到文件 " + self.file)
@@ -24,7 +23,7 @@ class Service(object):
         cdir = self.file.split('.')
         self.service = cdir[0]
         with zipfile.ZipFile(self.file, 'r') as zf:
-            zf.extractall('temp')
+            zf.extract(self.boots)
             zf.close()
         print(self.file + "解包完成")
         with open(self.boots, 'r+', encoding='utf-8') as conn:
@@ -44,18 +43,6 @@ class Service(object):
         with open(self.boots, 'w', encoding='utf-8') as conn:
             conn.write(text)
             conn.close()
-        print("配置修改完成，开始重新打包")
-        with zipfile.ZipFile('newfile.jar', 'w', zipfile.ZIP_DEFLATED) as newzf:
-            tpath = os.getcwd() + '/temp/'
-            for dir_path, dir_name, file_names in os.walk(tpath):
-                file_path = dir_path.replace(tpath, '')
-                file_path = file_path and file_path + os.sep or ''
-                for file_name in file_names:
-                    newzf.write(os.path.join(dir_path, file_name), file_path + file_name)
-            newzf.close()
-        shutil.rmtree('temp')
-        os.remove(self.file)
-        os.rename('newfile.jar', self.file)
         print("服务%s 的 bootstrap 已经修改完成" % self.service)
 
 

@@ -25,7 +25,7 @@ class Service(object):
         self.install_path = path
         self.path = path
         self.env = None
-        self.boots = 'temp/BOOT-INF/classes/bootstrap.yml'
+        self.boots = 'BOOT-INF/classes/bootstrap.yml'
         self.nacos_addr = None
         self.nacos_user = None
         self.nacos_passwd = None
@@ -61,11 +61,17 @@ class Service(object):
             print("服务文件已经存在，重新部署")
             os.remove(self.path)
             shutil.copy(self.file, self.path)
+        try:
+            shutil.copy(self.boots, self.install_path)
+        except IOError:
+            print("服务文件已经存在，重新部署")
+            os.remove(self.boots)
+            shutil.copy(self.boots, self.install_path)
         print("服务 " + self.service + "文件已经分发。")
 
     def modify_bootstrap(self):
         with zipfile.ZipFile(self.file, 'r') as zf:
-            zf.extractall('temp')
+            zf.extract(self.boots)
             zf.close()
         with open(self.boots, 'r+', encoding='utf-8') as conn:
             text = conn.read()
@@ -78,17 +84,6 @@ class Service(object):
         with open(self.boots, 'w', encoding='utf-8') as conn:
             conn.write(text)
             conn.close()
-        with zipfile.ZipFile('newfile.jar', 'w', zipfile.ZIP_DEFLATED) as newzf:
-            tpath = os.getcwd() + '/temp/'
-            for dir_path, dir_name, file_names in os.walk(tpath):
-                file_path = dir_path.replace(tpath, '')
-                file_path = file_path and file_path + os.sep or ''
-                for file_name in file_names:
-                    newzf.write(os.path.join(dir_path, file_name), file_path + file_name)
-            newzf.close()
-        shutil.rmtree('temp')
-        os.remove(self.file)
-        os.rename('newfile.jar', self.file)
         print("服务%s 的 bootstrap 已经修改完成" % self.service)
 
     def systemd_units(self):
@@ -97,7 +92,7 @@ Description=%s
 After=network.target
 
 [Service]
-ExecStart=%s -jar %s 
+ExecStart=%s -jar %s --spring.cloud.bootstrap.location=%s
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=%s
@@ -106,7 +101,8 @@ Restart=on-failure
 RestartSec=30s
 
 [Install]
-WantedBy=multi-user.target""" % (self.service, self.env, self.file, self.service)
+WantedBy=multi-user.target
+""" % (self.service, self.env, self.file, (self.install_path + '/bootstrap.yml'), self.service)
         unitsPath = '/var/lib/systemd/system/' + self.service + '.service'
         with open(unitsPath, 'w', encoding='utf-8') as unit:
             unit.write(unitFile)
@@ -122,11 +118,11 @@ WantedBy=multi-user.target""" % (self.service, self.env, self.file, self.service
   <startmode>Automatic</startmode>
   <workingdirectory>%s</workingdirectory>
   <executable>java</executable>
-  <arguments>-jar -Dfile.encoding=utf-8 %s</arguments>
+  <arguments>-jar -Dfile.encoding=utf-8 --spring.cloud.bootstrap.location=%s %s</arguments>
   <log mode="none">
   </log>
 </service>
-        """ % (self.service, self.service, self.install_path, self.file)
+        """ % (self.service, self.service, self.install_path, (self.install_path + '/bootstrap.yml'), self.file)
         with open((self.install_path + '/' + self.service + '.xml'), 'w', encoding='utf-8') as windowsService:
             windowsService.write(ServiceFile)
             windowsService.close()
@@ -139,6 +135,7 @@ WantedBy=multi-user.target""" % (self.service, self.env, self.file, self.service
             self.systemd_units()
         elif tos == 'Windows':
             self.winsw()
+        shutil.rmtree('BOOT-INF')
 
 
 def get_system_type():
