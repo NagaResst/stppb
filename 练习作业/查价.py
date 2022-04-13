@@ -1,17 +1,15 @@
-#! /bin/python3
 # -*- coding:UTF-8 -*-
 
 import requests
-import re
 import json
 import time
 
 
 class Item(object):
     def __init__(self, name, query_server):
+        self.name = name
         # 如果玩家输入的指令不是back 就进行对象的初始化
         if self.name != 'back':
-            self.name = name
             self.id = None
             self.server = query_server
             # 兼容查询HQ的功能
@@ -22,9 +20,16 @@ class Item(object):
             self.query_item_price()
 
     def select_item(self):
-        select = input("输入 1 查询售出历史 , 输入 2 查询制作材料 , 输入 3 查询制作成本 \n输入其他道具名继续查询，或输入back返回选择服务器 \n")
-        if select == "1":
+        select = input("""
+输入 h 查询售出历史 , 输入 m 查询更多记录,  输入 o 显示所有区服的最低价 ,输入 2 查询制作材料 , 输入 3 查询制作成本 
+输入其他道具名继续查询，或输入back返回选择服务器 
+""")
+        if select == "h" or select == "H":
             self.show_sale_history()
+        elif select == "m" or select == "M":
+            self.show_more_result()
+        elif select == "o" or select == "O":
+            self.show_every_server()
         elif select == "2":
             self.query_item_stuff()
         elif select == "3":
@@ -33,8 +38,28 @@ class Item(object):
             self.name = select
             self.__init__(self.name, self.server)
 
+    def select_more_server(self):
+        """
+        为查询所有区服最低价提供支持
+        https://ff.web.sdo.com/web8/index.html#/servers
+        """
+        server_list = []
+        if self.server == '猫小胖':
+            server_list = ['紫水栈桥', '延夏', '静语庄园', '摩杜纳', '海猫茶屋', '柔风海湾', '琥珀原']
+        elif self.server == '陆行鸟':
+            server_list = ['红玉海', '神意之地', '拉诺西亚', '幻影群岛', '萌芽池', '宇宙和音', '沃仙曦染', '晨曦王座']
+        elif self.server == '莫古力':
+            server_list = ['白银乡', '白金幻象', '神拳痕', '潮风亭', '旅人栈桥', '拂晓之间', '龙巢神殿', '梦羽宝境']
+        elif self.server == '豆豆柴':
+            server_list = ['水晶塔', '银泪湖', '太阳海岸', '伊修加德', '红茶川']
+        return server_list
+
     def init_query_result(self, url):
+        """
+        查询结果序列化成字典
+        """
         result = requests.get(url)
+        # 当属性的值为null的时候，无法转换成字典，将其替换为None
         result = result.text.replace('null', '"None"')
         result = json.loads(result)
         lastUploadTime = float(result['lastUploadTime'] / 1000)
@@ -55,18 +80,55 @@ class Item(object):
             hq = '  '
         return hq
 
+    def select_itemid(self, itemlist):
+        """
+        部分一致关键词搜索支持
+        """
+        x = 1
+        print('编号\t\t\t物品名称')
+        for i in itemlist:
+            print("%-5.d  \t\t%s " % (x, i['Name']))
+            x += 1
+        select = (int(input('请输入要查询的物品编号'))) - 1
+        self.id = itemlist[select]['ID']
+        self.name = itemlist[select]['Name']
+
     def query_item_id(self):
         """
         查询官方的物品ID，为后面的查询提供支持
         """
         try:
             query_url = 'https://cafemaker.wakingsands.com/search?indexes=item&string=' + self.name
-            result = requests.get(query_url)
-            res = re.findall('"ID":([0-9]*)', result.text)
-            self.id = res[0]
             print('物品查询中，请稍候...')
+            result = requests.get(query_url)
+            itemstr = result.text.replace('null', '"None"')
+            itemde = (json.loads(itemstr))["Results"]
+            if len(itemde) == 1:
+                self.id = itemde[0]['ID']
+                self.name = itemde[0]['Name']
+            elif len(itemde) > 1:
+                self.select_itemid(itemde)
         except KeyError:
             print('无法查询到物品ID。')
+
+    def show_result(self, result, server=None):
+        """
+        显示查询结果
+        """
+        for record in result['listings']:
+            hq = self.hq_or_not(record['hq'])
+            # uptime = self.timestamp_to_time(record['lastReviewTime'])
+            if 'worldName' in record:
+                print('''单价：%d\t数量：%2d  %s\t总价：%-8d\t服务器：%-5.4s \t卖家雇员：%s''' % (
+                    record['pricePerUnit'], record['quantity'], hq, record['total'], record['worldName'],
+                    record['retainerName']))
+            elif server is not None:
+                print('''单价：%d\t数量：%2d  %s\t总价：%-8d\t服务器：%-5.4s \t卖家雇员：%s''' % (
+                    record['pricePerUnit'], record['quantity'], hq, record['total'], server, record['retainerName']))
+            else:
+                print('''单价：%d\t数量：%2d  %s\t总价：%-8d \t卖家雇员：%s''' % (
+                    record['pricePerUnit'], record['quantity'], hq, record['total'], record['retainerName']))
+        return result
 
     def query_item_price(self):
         """
@@ -74,35 +136,19 @@ class Item(object):
         universalis在进行HQ过滤查询的时候，无法指定查询的数量。
         所以listings和hq两个查询参数不能同时使用，如果同时使用，hq过滤条件就会失效。
         """
-        # HQ查询的方法，universalis不支持在过滤HQ查询的时候指定返回的查询数量。
         if self.hq == "HQ" or self.hq == "hq":
             query_url = 'https://universalis.app/api/%s/%s?hq=true' % (self.server, self.id)
         elif self.hq == "NQ" or self.hq == "nq":
             query_url = 'https://universalis.app/api/%s/%s?hq=false' % (self.server, self.id)
         else:
-            query_url = 'https://universalis.app/api/%s/%s?listings=30' % (self.server, self.id)
-        result, lastUploadTime = self.init_query_result(query_url)
+            query_url = 'https://universalis.app/api/%s/%s?listings=15' % (self.server, self.id)
         try:
+            result, lastUploadTime = self.init_query_result(query_url)
             print('查询物品 ' + self.name + '\t\t更新时间： ' + lastUploadTime)
-            for record in result['listings']:
-                hq = self.hq_or_not(record['hq'])
-                # uptime = self.timestamp_to_time(record['lastReviewTime'])
-                if 'worldName' in record:
-                    # print('''单价：%d\t数量：%2d  %s\t总价：%d\t服务器：%-5.4s\t卖家雇员：%s \t\t 上架时间：%s''' % (
-                    #     record['pricePerUnit'], record['quantity'], hq, record['total'], record['worldName'],
-                    #     record['retainerName'], uptime))
-                    print('''单价：%d\t数量：%2d  %s\t总价：%d\t服务器：%-5.4s \t卖家雇员：%s''' % (
-                        record['pricePerUnit'], record['quantity'], hq, record['total'], record['worldName'],
-                        record['retainerName']))
-                else:
-                    print('''单价：%d\t数量：%2d  %s\t总价：%d \t卖家雇员：%s''' % (
-                        record['pricePerUnit'], record['quantity'], hq, record['total'], record['retainerName']))
+            self.show_result(result)
             print('\n 以下是最近5次的销售记录')
             for record in result['recentHistory']:
-                if record['hq']:
-                    hq = 'HQ'
-                else:
-                    hq = '  '
+                hq = self.hq_or_not(record['hq'])
                 buytime = self.timestamp_to_time(record['timestamp'])
                 if 'worldName' in record:
                     print('''单价：%d\t数量：%2d  %s\t总价：%d\t服务器：%-5.4s\t买家：%s \t 购买时间：%s''' % (
@@ -113,8 +159,29 @@ class Item(object):
                         record['pricePerUnit'], record['quantity'], hq, record['total'],
                         record['buyerName'], buytime))
             self.select_item()
-        finally:
-            pass
+        except KeyError:
+            print('查询不到物品数据')
+
+    def show_every_server(self):
+        """
+        查询当前大区每个服务器的最低价
+        """
+        servers_list = self.select_more_server()
+        for server in servers_list:
+            query_url = 'https://universalis.app/api/%s/%s?listings=1' % (server, self.id)
+            result, lastUploadTime = self.init_query_result(query_url)
+            self.show_result(result, server)
+        self.select_item()
+
+    def show_more_result(self):
+        """
+        显示更多在板子上售卖的商品
+        """
+        query_url = 'https://universalis.app/api/%s/%s?listings=50' % (self.server, self.id)
+        result, lastUploadTime = self.init_query_result(query_url)
+        print('查询物品 ' + self.name + '\t\t更新时间： ' + lastUploadTime)
+        self.show_result(result)
+        self.select_item()
 
     def show_sale_history(self):
         """
@@ -150,8 +217,7 @@ class Item(object):
 
 
 def select_server():
-    print('\n请输入要查询的服务器大区,可输入服务器简称，例如“猫、狗、猪、鸟” \n')
-    server = input()
+    server = input('\n请输入要查询的服务器大区,可输入服务器简称，例如“猫、狗、猪、鸟” \n')
     # server = '猫小胖'
     if server == '1' or server == '猫':
         server = '猫小胖'
@@ -169,10 +235,12 @@ def select_server():
 
 
 while True:
-    selectd_server = select_server
+    #    selectd_server = select_server()
+    selectd_server = '猫小胖'
     while True:
         print('请输入要查询的物品全名 , 或输入back返回选择服务器')
         item = input()
+        # item = '夹层'
         # 查询前使用back，直接返回服务器选择
         if item == 'back':
             break
