@@ -7,12 +7,13 @@ import time
 
 class Item(object):
     def __init__(self, name, query_server):
+        """
+        如果玩家输入的指令不是back 就进行对象的初始化
+        """
         self.name = name
-        # 如果玩家输入的指令不是back 就进行对象的初始化
         if self.name != 'back':
             self.id = None
             self.server = query_server
-            # 兼容查询HQ的功能
             self.hq = str(self.name)[-2:]
             if self.hq in ["HQ", "NQ", "hq", "nq"]:
                 self.name = str(self.name)[0:-2]
@@ -89,13 +90,20 @@ class Item(object):
         for i in itemlist:
             print("%-5.d  \t\t%s " % (x, i['Name']))
             x += 1
-        select = (int(input('请输入要查询的物品编号'))) - 1
-        self.id = itemlist[select]['ID']
-        self.name = itemlist[select]['Name']
+        print('请输入要查询的物品编号，输入物品名重新查询')
+        select = input()
+        if select.isdigit():
+            select = (int(select)) - 1
+            self.id = itemlist[select]['ID']
+            self.name = itemlist[select]['Name']
+        else:
+            self.__init__(select, self.server)
 
     def query_item_id(self):
         """
         查询官方的物品ID，为后面的查询提供支持
+        后续可能使用 garlandtools 替换现在的查询接口
+        https://garlandtools.cn/api/search.php?text=%E6%B0%B4%E4%B9%8B%E6%99%B6%E7%B0%87&lang=chs&ilvlMin=1&ilvlMax=999
         """
         try:
             query_url = 'https://cafemaker.wakingsands.com/search?indexes=item&string=' + self.name
@@ -203,11 +211,39 @@ class Item(object):
                     saletime))
         self.select_item()
 
+    @staticmethod
+    def query_item_detial(itemid):
+        query_url = 'https://garlandtools.cn/api/get.php?type=item&lang=chs&version=3&id=' + str(itemid)
+        result = requests.get(query_url)
+        result = (json.loads(result.text))['item']
+        return result
+
     def query_item_stuff(self):
         """
         查询物品的制作材料
         """
-        print('待开发')
+        print('正在查询制作需要的素材')
+        result = self.query_item_detial(self.id)
+        result = result['craft'][0]['ingredients']
+        for stuff in result:
+            item_info = self.query_item_detial(stuff['id'])
+            print('%s  %-2d' % (item_info['name'], stuff['amount']))
+            try:
+                c_s_result = self.query_item_detial(stuff['id'])
+                c_s_result = c_s_result['craft'][0]['ingredients']
+                for l2_stuff in c_s_result:
+                    c_item_info = self.query_item_detial(l2_stuff['id'])
+                    print('\t%s  %-2d' % (c_item_info['name'], l2_stuff['amount']))
+                    try:
+                        cc_s_result = self.query_item_detial(l2_stuff['id'])
+                        cc_s_result = cc_s_result['craft'][0]['ingredients']
+                        for l3_stuff in cc_s_result:
+                            cc_item_info = self.query_item_detial(l3_stuff['id'])
+                            print('\t\t%s  %-2d' % (cc_item_info['name'], l3_stuff['amount']))
+                    except KeyError:
+                        pass
+            except KeyError:
+                pass
 
     def query_item_cost(self):
         """
@@ -235,8 +271,8 @@ def select_server():
 
 
 while True:
-    #    selectd_server = select_server()
-    selectd_server = '猫小胖'
+    selectd_server = select_server()
+    # selectd_server = '猫小胖'
     while True:
         print('请输入要查询的物品全名 , 或输入back返回选择服务器')
         item = input()
