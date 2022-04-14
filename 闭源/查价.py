@@ -11,12 +11,15 @@ class Item(object):
         如果玩家输入的指令不是back 就进行对象的初始化
         """
         self.name = name
+        self.id = None
+        self.server = query_server
+        self.hq = str(self.name)[-2:]
+        if self.hq in ["HQ", "NQ", "hq", "nq"]:
+            self.name = str(self.name)[0:-2]
+        self.start_use()
+
+    def start_use(self):
         if self.name != 'back':
-            self.id = None
-            self.server = query_server
-            self.hq = str(self.name)[-2:]
-            if self.hq in ["HQ", "NQ", "hq", "nq"]:
-                self.name = str(self.name)[0:-2]
             self.query_item_id()
             self.query_item_price()
 
