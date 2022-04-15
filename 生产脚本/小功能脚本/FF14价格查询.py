@@ -53,6 +53,8 @@ class ItemQuerier(object):
         """
         时间戳转换工具
         """
+        if timestamp > 9999999999:
+            timestamp = float(timestamp / 1000)
         timearray = localtime(timestamp)
         res = strftime("%Y-%m-%d %H:%M:%S", timearray)
         return res
@@ -146,8 +148,7 @@ class ItemQuerier(object):
                 query_url = 'https://universalis.app/api/%s/%s?listings=15' % (self.server, self.id)
             try:
                 result = self.init_query_result(query_url)
-                lastUploadTime = float(result['lastUploadTime'] / 1000)
-                lastUploadTime = self.timestamp_to_time(lastUploadTime)
+                lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
                 self.show_result(result)
                 print('\n 以下是最近5次的售出记录')
@@ -181,8 +182,7 @@ class ItemQuerier(object):
         """
         query_url = 'https://universalis.app/api/%s/%s?listings=50' % (self.server, self.id)
         result = self.init_query_result(query_url)
-        lastUploadTime = float(result['lastUploadTime'] / 1000)
-        lastUploadTime = self.timestamp_to_time(lastUploadTime)
+        lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
         print('\n猴面雀为您查找到 ' + self.name + ' 的50条在售信息。 \t更新时间： ' + lastUploadTime)
         self.show_result(result)
 
@@ -192,8 +192,7 @@ class ItemQuerier(object):
         """
         query_url = 'https://universalis.app/api/history/%s/%s?entries=30' % (self.server, self.id)
         result = self.init_query_result(query_url)
-        lastUploadTime = float(result['lastUploadTime'] / 1000)
-        lastUploadTime = self.timestamp_to_time(lastUploadTime)
+        lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
         print('\n猴面雀为您查找到 ' + self.name + ' 的30条售出历史。 \t更新时间： ' + lastUploadTime)
         for record in result['entries']:
             hq = self.hq_or_not(record['hq'])
