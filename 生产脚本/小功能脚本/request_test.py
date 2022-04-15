@@ -114,7 +114,7 @@ while True:
             failed.close()
         success.close()
         runlog.write('close file | {}'.format(datetime.datetime.now()) + '\n')
-        os.chdir("../..")
+        os.chdir("../../..")
         runlog.write('work done | {}'.format(datetime.datetime.now()) + '\n')
     runlog.close()
     sleep(180)
