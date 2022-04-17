@@ -348,7 +348,6 @@ def load_location_list():
         with open(r'FF14价格查询清单.txt', 'r') as list_file:
             list_text = list_file.read()
             item_list = list_text.split('\n')
-        print("本地清单已经加载")
         return item_list
     except IOError:
         with open(r'FF14价格查询清单.txt', 'w') as list_file:
@@ -464,6 +463,7 @@ while True:
                         item.query_item_craft()
                         item.show_item_cost()
                     elif select == 'l' or item == 'L':
+                        items = load_location_list()
                         item = select_locaiton_item(items)
                         item = ItemQuerier(item, selectd_server)
                         item.query_item_price()
