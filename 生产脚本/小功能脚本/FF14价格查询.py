@@ -148,6 +148,7 @@ class ItemQuerier(object):
                 query_url = 'https://universalis.app/api/%s/%s?listings=15' % (self.server, self.id)
             try:
                 result = self.init_query_result(query_url)
+                # lastUploadTime = float(result['lastUploadTime'] / 1000)
                 lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
                 self.show_result(result)
@@ -172,16 +173,19 @@ class ItemQuerier(object):
         """
         servers_list = self.select_more_server()
         for server in servers_list:
-            query_url = 'https://universalis.app/api/%s/%s?listings=1' % (server, self.id)
-            result = self.init_query_result(query_url)
+            # query_url = 'https://universalis.app/api/%s/%s?listings=1' % (server, self.id)
+            # result = self.init_query_result(query_url)
+            result = self.query_item_cost_min(server, self.id, count=1)
             self.show_result(result, server)
 
     def show_more_result(self):
         """
         显示更多在板子上售卖的商品
         """
-        query_url = 'https://universalis.app/api/%s/%s?listings=50' % (self.server, self.id)
-        result = self.init_query_result(query_url)
+        # query_url = 'https://universalis.app/api/%s/%s?listings=50' % (self.server, self.id)
+        # result = self.init_query_result(query_url)
+        result = self.query_item_cost_min(self.server, self.id, count=50)
+        # lastUploadTime = float(result['lastUploadTime'] / 1000)
         lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
         print('\n猴面雀为您查找到 ' + self.name + ' 的50条在售信息。 \t更新时间： ' + lastUploadTime)
         self.show_result(result)
@@ -192,6 +196,7 @@ class ItemQuerier(object):
         """
         query_url = 'https://universalis.app/api/history/%s/%s?entries=30' % (self.server, self.id)
         result = self.init_query_result(query_url)
+        # lastUploadTime = float(result['lastUploadTime'] / 1000)
         lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
         print('\n猴面雀为您查找到 ' + self.name + ' 的30条售出历史。 \t更新时间： ' + lastUploadTime)
         for record in result['entries']:
@@ -232,14 +237,14 @@ class ItemQuerier(object):
             if 'craft' in stuff:
                 self.show_item_craft(stuff['craft'], tab=tab + '\t')
 
-    def query_item_cost_min(self, itemid):
+    def query_item_cost_min(self, server, itemid, count):
         """
-        查询单项材料的板子最低价格
+        查询单项物品的板子价格
         """
         try:
-            query_url = 'https://universalis.app/api/%s/%s?listings=1' % (self.server, itemid)
-            result = (self.init_query_result(query_url))['listings']
-            return result[0]['pricePerUnit']
+            query_url = 'https://universalis.app/api/%s/%s?listings=%d' % (server, itemid, count)
+            result = self.init_query_result(query_url)
+            return result
         except ConnectionError:
             print("\n猴面雀发现网络有点问题，找不到想要的资料了")
 
@@ -252,7 +257,8 @@ class ItemQuerier(object):
             print('.', end='')
             result = self.query_item_detial(unit['id'])
             stuff_list[i]['name'] = result['item']['name']
-            stuff_list[i]['pricePerUnit'] = self.query_item_cost_min(unit['id'])
+            stuff_list[i]['pricePerUnit'] = self.query_item_cost_min(self.server, unit['id'], count=1)['listings'][0][
+                'pricePerUnit']
             if 'vendors' in result['item']:
                 stuff_list[i]['priceFromNpc'] = result['item']['price']
             if 'craft' in result['item']:
@@ -336,6 +342,34 @@ def select_server():
     return server
 
 
+def load_location_list():
+    try:
+        print("猴面雀正在查找你的本地清单")
+        with open(r'FF14价格查询清单.txt', 'r') as list_file:
+            list_text = list_file.read()
+            item_list = list_text.split('\n')
+        return item_list
+    except IOError:
+        with open(r'FF14价格查询清单.txt', 'w') as list_file:
+            list_file.write('')
+        print('同目录下没有找到“FF14价格查询清单.txt” ，已为您生成空文件，一行写入一个物品')
+
+
+def select_locaiton_item(item_list):
+    if item_list is None:
+        print("本地清单中没有内容呢")
+        return None
+    else:
+        i = 1
+        print("请选择需要查询的物品")
+        for this_item in item_list:
+            print("%-4d\t%s" % (i, this_item))
+            i += 1
+        selectd_item = int(input())
+        print("已选择 %s" % item_list[selectd_item - 1])
+        return item_list[selectd_item - 1]
+
+
 def logo():
     print("""
 .........................................................................
@@ -385,43 +419,55 @@ while True:
         selectd_server = select_server()
     # selectd_server = select_server()
     while True:
-        print('请输入要查询的物品全名 , 或输入back返回选择服务器 \n')
+        print('请输入要查询的物品全名 , 输入 l 查询本地清单 , 或输入back返回选择服务器 \n')
         item = input()
         # 查询前使用back，直接返回服务器选择
         if item == 'back':
             selectd_server = None
             break
-        item = ItemQuerier(item, selectd_server)
-        item.query_item_price()
-        while True:
-            if item.id is None:
-                break
-            select = input("""
-输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价
-输入 2 查询制作材料 , 输入 3 查询制作成本
-输入其他道具名继续查询，或输入back返回选择服务器 \n
-""")
-#             select = input("""
-# 输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价,  输入 2 查询制作材料
-# 输入其他道具名继续查询，或输入back返回选择服务器 \n
-# """)
-            if select == 'back':
-                break
-            elif select == "h" or select == "H":
-                item.show_sale_history()
-            elif select == "m" or select == "M":
-                item.show_more_result()
-            elif select == "o" or select == "O":
-                item.show_every_server()
-            elif select == "2":
-                item.query_item_craft()
-                item.show_item_craft(item.stuff)
-            elif select == b'\n':
+        elif item == 'l' or item == 'L':
+            items = load_location_list()
+            item = select_locaiton_item(items)
+        else:
+            if item is None or item == b'\n' or item == '':
                 pass
-            elif select == "3":
-                item.query_item_craft()
-                item.show_item_cost()
             else:
-                item = select
                 item = ItemQuerier(item, selectd_server)
                 item.query_item_price()
+                while True:
+                    if item.id is None:
+                        break
+                    select = input("""
+输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价
+输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 继续查询本地清单
+输入其他道具名继续查询，或输入back返回选择服务器 \n
+        """)
+                    #             select = input("""
+                    # 输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价,  输入 2 查询制作材料
+                    # 输入其他道具名继续查询，或输入back返回选择服务器 \n
+                    # """)
+                    if select == 'back':
+                        break
+                    elif select == "h" or select == "H":
+                        item.show_sale_history()
+                    elif select == "m" or select == "M":
+                        item.show_more_result()
+                    elif select == "o" or select == "O":
+                        item.show_every_server()
+                    elif select == "2":
+                        item.query_item_craft()
+                        item.show_item_craft(item.stuff)
+                    elif select == b'\n':
+                        pass
+                    elif select == "3":
+                        item.query_item_craft()
+                        item.show_item_cost()
+                    elif select == 'l' or item == 'L':
+                        items = load_location_list()
+                        item = select_locaiton_item(items)
+                        item = ItemQuerier(item, selectd_server)
+                        item.query_item_price()
+                    else:
+                        item = select
+                        item = ItemQuerier(item, selectd_server)
+                        item.query_item_price()
