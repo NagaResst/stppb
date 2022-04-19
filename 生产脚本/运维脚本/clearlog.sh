@@ -3,7 +3,7 @@ tee /etc/cron.daily/clearlog.sh <<-'EOF'
 path=()
 for i in ${path[*]}
 do
-  find $i -type f -name "*.log" -mtime +30 -exec rm -rf {} \;
+  find $i -type f -name "*.log" -mtime +30 -exec echo > {} \;
 done
 EOF
 chmod +x /etc/cron.daily/clearlog.sh

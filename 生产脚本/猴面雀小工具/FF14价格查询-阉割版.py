@@ -3,7 +3,9 @@
 from requests import get
 from json import loads
 from time import localtime, strftime
-from math import ceil
+
+
+# from math import ceil
 
 
 class ItemQuerier(object):
@@ -37,8 +39,7 @@ class ItemQuerier(object):
             server_list = ['水晶塔', '银泪湖', '太阳海岸', '伊修加德', '红茶川']
         return server_list
 
-    @staticmethod
-    def init_query_result(url):
+    def init_query_result(self, url):
         """
         查询结果序列化成字典
         """
@@ -98,7 +99,6 @@ class ItemQuerier(object):
             query_url = 'https://cafemaker.wakingsands.com/search?indexes=item&string=' + self.name
             print('\n猴面雀正在为您查找需要的数据，请稍候... ')
             result = get(query_url)
-            # itemde = (loads(result.text))["Results"]
             itemstr = result.text.replace('null', '"None"')
             itemde = (loads(itemstr))["Results"]
             if len(itemde) == 1:
@@ -108,6 +108,7 @@ class ItemQuerier(object):
                 self.select_itemid(itemde)
             else:
                 print('\n猴面雀没有找到到您要查找的物品。')
+            print('猴面雀已经为您查找到物品 %s ID：%d' % (self.name, self.id))
         except ConnectionError:
             print('\n猴面雀发现网络有点问题，找不到想要的资料了')
 
@@ -141,14 +142,13 @@ class ItemQuerier(object):
             pass
         else:
             if self.hq == "HQ" or self.hq == "hq":
-                query_url = 'https://universalis.app/api/%s/%s?hq=true' % (self.server, self.id)
+                query_url = 'https://universalis.app/api/v2/%s/%s?listings=15&hq=true' % (self.server, self.id)
             elif self.hq == "NQ" or self.hq == "nq":
-                query_url = 'https://universalis.app/api/%s/%s?hq=false' % (self.server, self.id)
+                query_url = 'https://universalis.app/api/v2/%s/%s?listings=15&hq=false' % (self.server, self.id)
             else:
                 query_url = 'https://universalis.app/api/%s/%s?listings=15' % (self.server, self.id)
             try:
                 result = self.init_query_result(query_url)
-                # lastUploadTime = float(result['lastUploadTime'] / 1000)
                 lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
                 self.show_result(result)
@@ -173,8 +173,6 @@ class ItemQuerier(object):
         """
         servers_list = self.select_more_server()
         for server in servers_list:
-            # query_url = 'https://universalis.app/api/%s/%s?listings=1' % (server, self.id)
-            # result = self.init_query_result(query_url)
             result = self.query_item_cost_min(server, self.id, count=1)
             self.show_result(result, server)
 
@@ -182,10 +180,7 @@ class ItemQuerier(object):
         """
         显示更多在板子上售卖的商品
         """
-        # query_url = 'https://universalis.app/api/%s/%s?listings=50' % (self.server, self.id)
-        # result = self.init_query_result(query_url)
         result = self.query_item_cost_min(self.server, self.id, count=50)
-        # lastUploadTime = float(result['lastUploadTime'] / 1000)
         lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
         print('\n猴面雀为您查找到 ' + self.name + ' 的50条在售信息。 \t更新时间： ' + lastUploadTime)
         self.show_result(result)
@@ -220,7 +215,7 @@ class ItemQuerier(object):
             query_url = 'https://garlandtools.cn/api/get.php?type=item&lang=chs&version=3&id=' + str(itemid)
             result = get(query_url)
             result = loads(result.text)
-            return result
+            return result['item']
         except ConnectionError:
             print("\n猴面雀发现网络有点问题，找不到想要的资料了")
 
@@ -228,14 +223,17 @@ class ItemQuerier(object):
         """
         展示物品的制作配方
         """
-        for stuff in stuff_list:
-            if 'priceFromNpc' in stuff:
-                print('%s%-8s\t数量：%d\t价格：%-6d\t%d(npc)' % (
-                    tab, stuff['name'], stuff['amount'], stuff['pricePerUnit'], stuff['priceFromNpc']))
-            else:
-                print('%s%-8s\t数量：%d\t价格：%-6d' % (tab, stuff['name'], stuff['amount'], stuff['pricePerUnit']))
-            if 'craft' in stuff:
-                self.show_item_craft(stuff['craft'], tab=tab + '\t')
+        if self.stuff is not None:
+            for stuff in stuff_list:
+                if 'priceFromNpc' in stuff:
+                    print('%s%-8s\t数量：%d\t价格：%-6d\t%d(npc)' % (
+                        tab, stuff['name'], stuff['amount'], stuff['pricePerUnit'], stuff['priceFromNpc']))
+                else:
+                    print('%s%-8s\t数量：%d\t价格：%-6d' % (tab, stuff['name'], stuff['amount'], stuff['pricePerUnit']))
+                if 'craft' in stuff:
+                    self.show_item_craft(stuff['craft'], tab=tab + '\t')
+        else:
+            print('猴面雀发现你要查询的物品不是制作出来的。')
 
     def query_item_cost_min(self, server, itemid, count):
         """
@@ -256,15 +254,15 @@ class ItemQuerier(object):
         for unit in stuff_list:
             print('.', end='')
             result = self.query_item_detial(unit['id'])
-            stuff_list[i]['name'] = result['item']['name']
+            stuff_list[i]['name'] = result['name']
             stuff_list[i]['pricePerUnit'] = self.query_item_cost_min(self.server, unit['id'], count=1)['listings'][0][
                 'pricePerUnit']
-            if 'vendors' in result['item']:
-                stuff_list[i]['priceFromNpc'] = result['item']['price']
-            if 'craft' in result['item']:
-                stuff_list[i]['craft'] = result['item']['craft'][0]['ingredients']
-                if 'yield' in result['item']['craft'][0]:
-                    stuff_list[i]['yield'] = result['item']['craft'][0]['yield']
+            if 'vendors' in result:
+                stuff_list[i]['priceFromNpc'] = result['price']
+            if 'craft' in result:
+                stuff_list[i]['craft'] = result['craft'][0]['ingredients']
+                if 'yield' in result['craft'][0]:
+                    stuff_list[i]['yield'] = result['craft'][0]['yield']
                 self.make_item_craft(stuff_list[i]['craft'])
             i += 1
 
@@ -272,51 +270,59 @@ class ItemQuerier(object):
         """
         查询物品的制作材料
         """
-        if len(self.stuff) == 0:
-            print('\n猴面雀正在为您查找制作需要的素材，配方越复杂，猴面雀就需要翻阅越多的资料！')
-            self.stuff = (self.query_item_detial(self.id))['item']['craft'][0]['ingredients']
-            self.make_item_craft(self.stuff)
-            print("\n 猴面雀已经为您查找到 %s 的制作配方" % self.name)
+        if self.stuff is not None:
+            if len(self.stuff) == 0:
+                print('\n猴面雀正在为您查找制作需要的素材，配方越复杂，猴面雀就需要翻阅越多的资料！')
+                self.stuff = self.query_item_detial(self.id)
+                if 'craft' in self.stuff:
+                    self.stuff = self.stuff['craft'][0]['ingredients']
+                    self.make_item_craft(self.stuff)
+                    print("\n 猴面雀已经为您查找到 %s 的制作配方" % self.name)
+                else:
+                    self.stuff = None
 
-    def query_item_cost(self, stuff_list, count=1, tab=''):
-        """
-        查询物品的制作成本的计算器
-        """
-        d_cost = 0
-        self.query_item_craft()
-        for stuff in stuff_list:
-            n_count = (stuff['amount'] * count)
-            if 'priceFromNpc' in stuff:
-                price = min(stuff['priceFromNpc'], stuff['pricePerUnit']) * n_count
-            else:
-                price = stuff['pricePerUnit'] * n_count
-            print('%s%-8s\t数量%2d\t价格：%-6d' % (tab, stuff['name'], n_count, price))
-            d_cost = d_cost + price
-            if 'yield' in stuff and 'craft' in stuff:
-                c_count = 0
-                if n_count > stuff['yield']:
-                    c_count = ceil(n_count / stuff['yield'])
-                elif n_count <= stuff['yield']:
-                    c_count = 1
-                self.o_cost = self.o_cost + self.query_item_cost(stuff['craft'], c_count, tab=tab + '\t')
-            elif 'craft' in stuff and 'yield' not in stuff:
-                self.o_cost = self.o_cost + self.query_item_cost(stuff['craft'], n_count, tab=tab + '\t')
-            else:
-                self.o_cost = self.o_cost + price
-        return d_cost
+    # def query_item_cost(self, stuff_list, count=1, tab=''):
+    #     """
+    #     查询物品的制作成本的计算器
+    #     """
+    #     d_cost = 0
+    #     self.query_item_craft()
+    #     for stuff in stuff_list:
+    #         n_count = (stuff['amount'] * count)
+    #         if 'priceFromNpc' in stuff:
+    #             price = min(stuff['priceFromNpc'], stuff['pricePerUnit']) * n_count
+    #         else:
+    #             price = stuff['pricePerUnit'] * n_count
+    #         print('%s%-8s\t数量%2d\t价格：%-6d' % (tab, stuff['name'], n_count, price))
+    #         d_cost = d_cost + price
+    #         if 'yield' in stuff and 'craft' in stuff:
+    #             c_count = 0
+    #             if n_count > stuff['yield']:
+    #                 c_count = ceil(n_count / stuff['yield'])
+    #             elif n_count <= stuff['yield']:
+    #                 c_count = 1
+    #             self.o_cost = self.o_cost + self.query_item_cost(stuff['craft'], c_count, tab=tab + '\t')
+    #         elif 'craft' in stuff and 'yield' not in stuff:
+    #             self.o_cost = self.o_cost + self.query_item_cost(stuff['craft'], n_count, tab=tab + '\t')
+    #         else:
+    #             self.o_cost = self.o_cost + price
+    #     return d_cost
 
-    def show_item_cost(self):
-        """
-        显示物品的制作成本的外壳
-        """
-        self.d_cost = 0
-        self.o_cost = 0
-        print('\n开始统计 %s 制作成本' % self.name)
-        self.d_cost = self.query_item_cost(self.stuff)
-        if self.d_cost == self.o_cost:
-            print('\n材料总价合计 %d' % self.d_cost)
-        else:
-            print('\n直接材料总价合计 %d, \t 原始材料价格总价合计 %d' % (self.d_cost, self.o_cost))
+    # def show_item_cost(self):
+    #     """
+    #     显示物品的制作成本的外壳
+    #     """
+    #     if self.stuff is not None:
+    #         self.d_cost = 0
+    #         self.o_cost = 0
+    #         print('\n开始统计 %s 制作成本' % self.name)
+    #         self.d_cost = self.query_item_cost(self.stuff)
+    #         if self.d_cost == self.o_cost:
+    #             print('\n材料总价合计 %d' % self.d_cost)
+    #         else:
+    #             print('\n直接材料总价合计 %d, \t 原始材料价格总价合计 %d' % (self.d_cost, self.o_cost))
+    #     else:
+    #         print('\n猴面雀发现你要查询的物品不能制作！')
 
 
 def select_server():
@@ -324,7 +330,6 @@ def select_server():
     服务器选择
     """
     server = input('请输入要查询的大区服务器,可输入大区简称，例如“ 1 猫、2 鸟、3 猪、4 狗 ” \n')
-    # server = '猫小胖'
     if server == '1' or server == '猫':
         server = '猫小胖'
         print("猴面雀将为您查询 猫小胖 的市场数据")
@@ -405,29 +410,27 @@ def logo():
 @@@@@@@@@^.....................[O@/............[/`..........=@@OOOOOOOOO@
 =@@@@@@@@....................................................=@@@O@@@O@O@
 ========   欢迎使用猴面雀价格查询小工具    夕山菀@紫水栈桥   ============
-========     老婆！ 是老婆啊！！    琉森@紫水栈桥 专用版     ============
 """)
 
 
 # ========     老婆！ 是老婆啊！！    琉森@紫水栈桥 专用版     ============
 
 
-selectd_server = '猫小胖'
 while True:
     logo()
-    if selectd_server is None:
-        selectd_server = select_server()
-    # selectd_server = select_server()
+    selectd_server = select_server()
+    # if selectd_server is None:
+    #     selectd_server = select_server()
     while True:
-        print('请输入要查询的物品全名 , 输入 l 查询本地清单 , 或输入back返回选择服务器 \n')
+        print('请输入要查询的物品全名 , 或输入back返回选择服务器 \n')
         item = input()
         # 查询前使用back，直接返回服务器选择
         if item == 'back':
-            selectd_server = None
+            # selectd_server = None
             break
-        elif item == 'l' or item == 'L':
-            items = load_location_list()
-            item = select_locaiton_item(items)
+        # elif item == 'l' or item == 'L':
+        #     items = load_location_list()
+        #     item = select_locaiton_item(items)
         else:
             if item is None or item == b'\n' or item == '':
                 pass
@@ -438,14 +441,10 @@ while True:
                     if item.id is None:
                         break
                     select = input("""
-输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价
-输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 继续查询本地清单
+输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价 , 输入 2 查询制作材料 
 输入其他道具名继续查询，或输入back返回选择服务器 \n
-        """)
-                    #             select = input("""
-                    # 输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价,  输入 2 查询制作材料
-                    # 输入其他道具名继续查询，或输入back返回选择服务器 \n
-                    # """)
+""")
+                    # 输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 查询本地清单
                     if select == 'back':
                         break
                     elif select == "h" or select == "H":
@@ -457,16 +456,16 @@ while True:
                     elif select == "2":
                         item.query_item_craft()
                         item.show_item_craft(item.stuff)
-                    elif select == b'\n':
+                    elif select == b'\n' or select == '':
                         pass
-                    elif select == "3":
-                        item.query_item_craft()
-                        item.show_item_cost()
-                    elif select == 'l' or item == 'L':
-                        items = load_location_list()
-                        item = select_locaiton_item(items)
-                        item = ItemQuerier(item, selectd_server)
-                        item.query_item_price()
+                    # elif select == "3":
+                    #     item.query_item_craft()
+                    #     item.show_item_cost()
+                    # elif select == 'l' or item == 'L':
+                    #     items = load_location_list()
+                    #     item = select_locaiton_item(items)
+                    #     item = ItemQuerier(item, selectd_server)
+                    #     item.query_item_price()
                     else:
                         item = select
                         item = ItemQuerier(item, selectd_server)
