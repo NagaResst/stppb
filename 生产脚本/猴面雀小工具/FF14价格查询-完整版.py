@@ -37,7 +37,8 @@ class ItemQuerier(object):
             server_list = ['水晶塔', '银泪湖', '太阳海岸', '伊修加德', '红茶川']
         return server_list
 
-    def init_query_result(self, url):
+    @staticmethod
+    def init_query_result(url):
         """
         查询结果序列化成字典
         """
