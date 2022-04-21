@@ -17,6 +17,7 @@ class ItemQuerier(object):
         self.d_cost = 0
         self.o_cost = 0
         self.server = query_server
+        self.result = None
         self.hq = str(self.name)[-2:]
         if self.hq in ["HQ", "NQ", "hq", "nq"]:
             self.name = str(self.name)[0:-2]
@@ -128,7 +129,6 @@ class ItemQuerier(object):
             else:
                 print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d \t卖家雇员：%s''' % (
                     record['pricePerUnit'], record['quantity'], hq, record['total'], record['retainerName']))
-        return result
 
     def query_item_price(self):
         """
@@ -147,12 +147,12 @@ class ItemQuerier(object):
             else:
                 query_url = 'https://universalis.app/api/%s/%s?listings=15' % (self.server, self.id)
             try:
-                result = self.init_query_result(query_url)
-                lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
+                self.result = self.init_query_result(query_url)
+                lastUploadTime = self.timestamp_to_time(self.result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
-                self.show_result(result)
+                self.show_result(self.result)
                 print('\n 以下是最近5次的售出记录')
-                for record in result['recentHistory']:
+                for record in self.result['recentHistory']:
                     hq = self.hq_or_not(record['hq'])
                     buytime = self.timestamp_to_time(record['timestamp'])
                     if 'worldName' in record:
@@ -165,6 +165,20 @@ class ItemQuerier(object):
                             record['buyerName'], buytime))
             except ConnectionError:
                 print('\n猴面雀发现网络有点问题，找不到想要的资料了')
+
+    def show_true_id(self, server=None):
+        print('\n 显示 ' + self.name + ' ID:' + str(self.id) + ' 在板子上的真实身份ID')
+        for record in self.result['listings']:
+            if 'worldName' in record:
+                print('''服务器：%-5.4s \t卖家雇员：%-12s\t雇员ID：%s\t制作者ID：%s\t出售者ID：%s''' % (
+                    record['worldName'], record['retainerName'], record['retainerID'], record['creatorID'],
+                    record['sellerID']))
+            elif server is not None:
+                print('''服务器：%-5.4s \t卖家雇员：%-12s\t雇员ID：%s\t制作者ID：%s\t出售者ID：%s''' % (
+                    server, record['retainerName'], record['retainerID'], record['creatorID'], record['sellerID']))
+            else:
+                print('''卖家雇员：%-12s\t雇员ID：%s\t制作者ID：%s\t出售者ID：%s''' % (
+                    record['retainerName'], record['retainerID'], record['creatorID'], record['sellerID']))
 
     def show_every_server(self):
         """
@@ -421,56 +435,66 @@ def logo():
 
 
 selectd_server = '猫小胖'
+logo()
 while True:
-    logo()
     if selectd_server is None:
         selectd_server = select_server()
+    item = None
     while True:
-        print('请输入要查询的物品全名 , 输入 l 查询本地清单 , 或输入back返回选择服务器 \n')
-        item = input()
-        # 查询前使用back，直接返回服务器选择
         if item == 'back':
+            # 查询后返回选择服务器
             selectd_server = None
             break
-        elif item == 'l' or item == 'L':
+        print('请输入要查询的物品全名 , 输入 l 查询本地清单 , 或输入back返回选择服务器 \n')
+        item = input()
+        if item == 'l' or item == 'L':
             items = load_location_list()
             item = select_locaiton_item(items)
+        elif item is None or item == b'\n' or item == '':
+            # 误触回车的容错  兼容两种系统
+            pass
+        elif item == 'back':
+            # 未查询返回选择服务器
+            selectd_server = None
+            break
         else:
-            if item is None or item == b'\n' or item == '':
-                pass
-            else:
-                item = ItemQuerier(item, selectd_server)
-                item.query_item_price()
-                while True:
-                    if item.id is None:
-                        break
-                    select = input("""
+            item = ItemQuerier(item, selectd_server)
+            item.query_item_price()
+            while True:
+                if item.id is None:
+                    # 一种ID为空时的容错机制
+                    break
+                select = input("""
 输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价 
 输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 查询本地清单
 输入其他道具名继续查询，或输入back返回选择服务器 \n
 """)
-                    if select == 'back':
-                        break
-                    elif select == "h" or select == "H":
-                        item.show_sale_history()
-                    elif select == "m" or select == "M":
-                        item.show_more_result()
-                    elif select == "o" or select == "O":
-                        item.show_every_server()
-                    elif select == "2":
-                        item.query_item_craft()
-                        item.show_item_craft(item.stuff)
-                    elif select == "3":
-                        item.query_item_craft()
-                        item.show_item_cost()
-                    elif select == 'l' or item == 'L':
-                        items = load_location_list()
-                        item = select_locaiton_item(items)
-                        item = ItemQuerier(item, selectd_server)
-                        item.query_item_price()
-                    elif select == b'\n' or select == '':
-                        pass
-                    else:
-                        item = select
-                        item = ItemQuerier(item, selectd_server)
-                        item.query_item_price()
+                if select == 'back':
+                    item = 'back'
+                    break
+                elif select == "h" or select == "H":
+                    item.show_sale_history()
+                elif select == "m" or select == "M":
+                    item.show_more_result()
+                elif select == "o" or select == "O":
+                    item.show_every_server()
+                elif select == "t" or select == "T":
+                    item.show_true_id()
+                elif select == "2":
+                    item.query_item_craft()
+                    item.show_item_craft(item.stuff)
+                elif select == "3":
+                    item.query_item_craft()
+                    item.show_item_cost()
+                elif select == 'l' or item == 'L':
+                    items = load_location_list()
+                    item = select_locaiton_item(items)
+                    item = ItemQuerier(item, selectd_server)
+                    item.query_item_price()
+                elif select == b'\n' or select == '':
+                    # 误触回车的容错  兼容两种系统
+                    pass
+                else:
+                    item = select
+                    item = ItemQuerier(item, selectd_server)
+                    item.query_item_price()
