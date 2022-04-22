@@ -94,10 +94,14 @@ class ItemQuerier(object):
         后续可能使用 garlandtools 替换现在的查询接口
         https://garlandtools.cn/api/search.php?text=%E6%B0%B4%E4%B9%8B%E6%99%B6%E7%B0%87&lang=chs&ilvlMin=1&ilvlMax=999
         """
+        result = None
         try:
             query_url = 'https://cafemaker.wakingsands.com/search?indexes=item&string=' + self.name
             print('\n猴面雀正在为您查找需要的数据，请稍候... ')
             result = get(query_url)
+        except ConnectionError:
+            print('\n猴面雀发现网络有点问题，找不到想要的资料了')
+        try:
             itemstr = result.text.replace('null', '"None"')
             itemde = (loads(itemstr))["Results"]
             if len(itemde) == 1:
@@ -105,11 +109,9 @@ class ItemQuerier(object):
                 self.name = itemde[0]['Name']
             elif len(itemde) > 1:
                 self.select_itemid(itemde)
-            else:
-                print('\n猴面雀没有找到到您要查找的物品。')
             print('猴面雀已经为您查找到物品 %s ID：%d' % (self.name, self.id))
-        except ConnectionError:
-            print('\n猴面雀发现网络有点问题，找不到想要的资料了')
+        except TypeError:
+            print('\n猴面雀没有找到到您要查找的物品。')
 
     def show_result(self, result, server=None):
         """
