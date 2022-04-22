@@ -416,58 +416,54 @@ def logo():
 
 # ========     老婆！ 是老婆啊！！    琉森@紫水栈桥 专用版     ============
 
-
+logo()
 while True:
-    logo()
     selectd_server = select_server()
-    # if selectd_server is None:
-    #     selectd_server = select_server()
+    item = None
     while True:
+        if item == 'back':
+            # 查询后返回选择服务器
+            break
         print('请输入要查询的物品全名 , 或输入back返回选择服务器 \n')
         item = input()
         # 查询前使用back，直接返回服务器选择
         if item == 'back':
-            # selectd_server = None
             break
-        # elif item == 'l' or item == 'L':
-        #     items = load_location_list()
-        #     item = select_locaiton_item(items)
+        elif item is None or item == b'\n' or item == '':
+            pass
         else:
-            if item is None or item == b'\n' or item == '':
-                pass
-            else:
-                item = ItemQuerier(item, selectd_server)
-                item.query_item_price()
-                while True:
-                    if item.id is None:
-                        break
-                    select = input("""
+            item = ItemQuerier(item, selectd_server)
+            item.query_item_price()
+            while True:
+                if item.id is None:
+                    break
+                select = input("""
 输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价 , 输入 2 查询制作材料 
 输入其他道具名继续查询，或输入back返回选择服务器 \n
 """)
-                    # 输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 查询本地清单
-                    if select == 'back':
-                        break
-                    elif select == "h" or select == "H":
-                        item.show_sale_history()
-                    elif select == "m" or select == "M":
-                        item.show_more_result()
-                    elif select == "o" or select == "O":
-                        item.show_every_server()
-                    elif select == "2":
-                        item.query_item_craft()
-                        item.show_item_craft(item.stuff)
-                    elif select == b'\n' or select == '':
-                        pass
-                    # elif select == "3":
-                    #     item.query_item_craft()
-                    #     item.show_item_cost()
-                    # elif select == 'l' or item == 'L':
-                    #     items = load_location_list()
-                    #     item = select_locaiton_item(items)
-                    #     item = ItemQuerier(item, selectd_server)
-                    #     item.query_item_price()
-                    else:
-                        item = select
-                        item = ItemQuerier(item, selectd_server)
-                        item.query_item_price()
+                # 输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 查询本地清单
+                if select == 'back':
+                    break
+                elif select == "h" or select == "H":
+                    item.show_sale_history()
+                elif select == "m" or select == "M":
+                    item.show_more_result()
+                elif select == "o" or select == "O":
+                    item.show_every_server()
+                elif select == "2":
+                    item.query_item_craft()
+                    item.show_item_craft(item.stuff)
+                elif select == b'\n' or select == '':
+                    pass
+                # elif select == "3":
+                #     item.query_item_craft()
+                #     item.show_item_cost()
+                # elif select == 'l' or item == 'L':
+                #     items = load_location_list()
+                #     item = select_locaiton_item(items)
+                #     item = ItemQuerier(item, selectd_server)
+                #     item.query_item_price()
+                else:
+                    item = select
+                    item = ItemQuerier(item, selectd_server)
+                    item.query_item_price()
