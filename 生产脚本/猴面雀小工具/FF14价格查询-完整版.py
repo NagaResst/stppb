@@ -1,9 +1,10 @@
 # -*- coding:UTF-8 -*-
 
-from requests import get
 from json import loads
-from time import localtime, strftime
 from math import ceil
+from time import localtime, strftime
+
+from requests import get
 
 
 class ItemQuerier(object):
@@ -270,8 +271,14 @@ class ItemQuerier(object):
             print('.', end='')
             result = self.query_item_detial(unit['id'])
             stuff_list[i]['name'] = result['name']
-            stuff_list[i]['pricePerUnit'] = self.query_item_cost_min(self.server, unit['id'], count=1)['listings'][0][
-                'pricePerUnit']
+            # stuff_list[i]['pricePerUnit'] = self.query_item_cost_min(self.server, unit['id'], count=1)['listings'][0][
+            #     'pricePerUnit']
+            query_result = self.query_item_cost_min(self.server, unit['id'], count=1)
+            x = abs(query_result['averagePrice'] - query_result['listings'][0]['pricePerUnit'])
+            if x > 300:
+                stuff_list[i]['pricePerUnit'] = query_result['listings'][0]['pricePerUnit']
+            else:
+                stuff_list[i]['pricePerUnit'] = query_result['averagePrice']
             if 'vendors' in result:
                 stuff_list[i]['priceFromNpc'] = result['price']
             if 'craft' in result:
