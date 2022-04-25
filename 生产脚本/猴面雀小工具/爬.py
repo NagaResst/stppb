@@ -112,9 +112,9 @@ print("已经获取到需要匹配的对象%d个。" % len(m_id))
 # print(m_id)
 i_id = query_item_in_market()
 print("已经获取到可查询物品的ID。")
-startid = int(input('请输入开始ID'))
+# startid = int(input('请输入开始ID'))
 for item_id in i_id:
-    if int(item_id) >= startid:
+    if int(item_id) >= 1:
         try:
             item_record = ItemQuerier(item_id)
             print('正在查询物品id %s' % item_record.id)
@@ -127,17 +127,16 @@ for item_id in i_id:
             print('正在查询物品id %s' % item_record.id)
             listings = item_record.output_sell_list()
             history = item_record.output_buyer()
+        relist = []
         for record in listings:
-            relist = []
-            if record['isCrafted'] is True:
-                if record['creatorID'] in m_id or record['sellerID'] in m_id:
-                    print("已发现雇员 %s 正在售卖物品 %s" % (record['retainerName'], item_record.id))
-                    if record['retainerID'] not in relist:
-                        itemName = query_item_detial(item_id)
-                        insert_sell_to_db(record['worldName'], record['sellerID'], record['retainerName'],
-                                          record['retainerID'], item_record.id, itemName)
-                        print('已将雇员 %s 记录到数据库中' % record['retainerName'])
-                        relist = relist.append(record['retainerID'])
+            if record['creatorID'] in m_id or record['sellerID'] in m_id:
+                print("已发现雇员 %s 正在售卖物品 %s" % (record['retainerName'], item_record.id))
+                if record['retainerID'] not in relist:
+                    itemName = query_item_detial(item_id)
+                    insert_sell_to_db(record['worldName'], record['sellerID'], record['retainerName'],
+                                      record['retainerID'], item_record.id, itemName)
+                    print('已将雇员 %s 记录到数据库中' % record['retainerName'])
+                    relist.append(record['retainerID'])
         for record in history:
             if record['buyerName'] == '爱丽丝铃':
                 insert_buy_to_db(item_record.id, record['worldName'], record['timestamp'])

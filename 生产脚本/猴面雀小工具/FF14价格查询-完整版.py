@@ -89,6 +89,7 @@ class ItemQuerier(object):
             self.name = itemlist[user_select]['Name']
         else:
             self.__init__(user_select, self.server)
+            self.query_item_id()
 
     def query_item_id(self):
         """
