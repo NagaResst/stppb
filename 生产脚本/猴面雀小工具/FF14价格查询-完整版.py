@@ -154,6 +154,7 @@ class ItemQuerier(object):
                 lastUploadTime = self.timestamp_to_time(self.result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
                 self.show_result(self.result)
+                print("%s的 全区服 历史平均成交价格 %d" % (self.result['dcName'], self.result['averagePrice']))
                 print('\n 以下是最近5次的售出记录')
                 for record in self.result['recentHistory']:
                     hq = self.hq_or_not(record['hq'])

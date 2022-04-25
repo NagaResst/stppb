@@ -19,6 +19,7 @@ class ItemQuerier(object):
         self.d_cost = 0
         self.o_cost = 0
         self.server = query_server
+        self.result = None
         self.hq = str(self.name)[-2:]
         if self.hq in ["HQ", "NQ", "hq", "nq"]:
             self.name = str(self.name)[0:-2]
@@ -96,10 +97,14 @@ class ItemQuerier(object):
         后续可能使用 garlandtools 替换现在的查询接口
         https://garlandtools.cn/api/search.php?text=%E6%B0%B4%E4%B9%8B%E6%99%B6%E7%B0%87&lang=chs&ilvlMin=1&ilvlMax=999
         """
+        result = None
         try:
             query_url = 'https://cafemaker.wakingsands.com/search?indexes=item&string=' + self.name
             print('\n猴面雀正在为您查找需要的数据，请稍候... ')
             result = get(query_url)
+        except ConnectionError:
+            print('\n猴面雀发现网络有点问题，找不到想要的资料了')
+        try:
             itemstr = result.text.replace('null', '"None"')
             itemde = (loads(itemstr))["Results"]
             if len(itemde) == 1:
@@ -107,11 +112,9 @@ class ItemQuerier(object):
                 self.name = itemde[0]['Name']
             elif len(itemde) > 1:
                 self.select_itemid(itemde)
-            else:
-                print('\n猴面雀没有找到到您要查找的物品。')
             print('猴面雀已经为您查找到物品 %s ID：%d' % (self.name, self.id))
-        except ConnectionError:
-            print('\n猴面雀发现网络有点问题，找不到想要的资料了')
+        except TypeError:
+            print('\n猴面雀没有找到到您要查找的物品。')
 
     def show_result(self, result, server=None):
         """
@@ -130,7 +133,7 @@ class ItemQuerier(object):
             else:
                 print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d \t卖家雇员：%s''' % (
                     record['pricePerUnit'], record['quantity'], hq, record['total'], record['retainerName']))
-        return result
+        print("历史平均成交价格 %d" % result['averagePrice'])
 
     def query_item_price(self):
         """
@@ -149,12 +152,12 @@ class ItemQuerier(object):
             else:
                 query_url = 'https://universalis.app/api/%s/%s?listings=15' % (self.server, self.id)
             try:
-                result = self.init_query_result(query_url)
-                lastUploadTime = self.timestamp_to_time(result['lastUploadTime'])
+                self.result = self.init_query_result(query_url)
+                lastUploadTime = self.timestamp_to_time(self.result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
-                self.show_result(result)
+                self.show_result(self.result)
                 print('\n 以下是最近5次的售出记录')
-                for record in result['recentHistory']:
+                for record in self.result['recentHistory']:
                     hq = self.hq_or_not(record['hq'])
                     buytime = self.timestamp_to_time(record['timestamp'])
                     if 'worldName' in record:
@@ -256,8 +259,12 @@ class ItemQuerier(object):
             print('.', end='')
             result = self.query_item_detial(unit['id'])
             stuff_list[i]['name'] = result['name']
-            stuff_list[i]['pricePerUnit'] = self.query_item_cost_min(self.server, unit['id'], count=1)['listings'][0][
-                'pricePerUnit']
+            query_result = self.query_item_cost_min(self.server, unit['id'], count=1)
+            x = abs(query_result['averagePrice'] - query_result['listings'][0]['pricePerUnit'])
+            if x > 300:
+                stuff_list[i]['pricePerUnit'] = query_result['listings'][0]['pricePerUnit']
+            else:
+                stuff_list[i]['pricePerUnit'] = query_result['averagePrice']
             if 'vendors' in result:
                 stuff_list[i]['priceFromNpc'] = result['price']
             if 'craft' in result:
@@ -349,6 +356,9 @@ def select_server():
 
 
 def load_location_list():
+    """
+    加载本地文件作为清单
+    """
     try:
         print("猴面雀正在查找你的本地清单")
         with open(r'FF14价格查询清单.txt', 'r') as list_file:
@@ -362,6 +372,9 @@ def load_location_list():
 
 
 def select_locaiton_item(item_list):
+    """
+    使用本地清单选择物品
+    """
     if item_list is None:
         print("本地清单中没有内容呢")
         return None
@@ -426,16 +439,19 @@ while True:
             break
         print('请输入要查询的物品全名 , 或输入back返回选择服务器 \n')
         item = input()
-        # 查询前使用back，直接返回服务器选择
-        if item == 'back':
-            break
-        elif item is None or item == b'\n' or item == '':
+        if item is None or item == b'\n' or item == '':
+            # 误触回车的容错  兼容两种系统
             pass
+        elif item == 'back':
+            # 未查询返回选择服务器
+            selectd_server = None
+            break
         else:
             item = ItemQuerier(item, selectd_server)
             item.query_item_price()
             while True:
                 if item.id is None:
+                    # 一种ID为空时的容错机制
                     break
                 select = input("""
 输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价 , 输入 2 查询制作材料 
@@ -443,6 +459,7 @@ while True:
 """)
                 # 输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 查询本地清单
                 if select == 'back':
+                    item = 'back'
                     break
                 elif select == "h" or select == "H":
                     item.show_sale_history()
