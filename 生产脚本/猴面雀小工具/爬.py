@@ -45,11 +45,11 @@ def query_user_id():
     return re_list
 
 
-def insert_sell_to_db(server, userId, retainerName, retainerId, itemId):
+def insert_sell_to_db(server, userId, retainerName, retainerId, itemId, itemName):
     c = db.cursor()
     c.execute(
-        "INSERT INTO sell_record ( server, userid,retainer,retainerid,item ) VALUES  ( '%s','%s','%s','%s','%s' );" % (
-            server, userId, retainerName, retainerId, itemId))
+        "INSERT INTO sell_record ( server, userid,retainer,retainerid,item,itemname ) VALUES  ( '%s','%s','%s','%s','%s','%s' );" % (
+            server, userId, retainerName, retainerId, itemId, itemName))
     db.commit()
 
 
@@ -58,6 +58,33 @@ def insert_buy_to_db(itemId, server, timestamp):
     c.execute(
         "INSERT INTO buy_record ( item,server, timestamp ) VALUES  ( '%s','%s','%s' );" % (
             itemId, server, str(timestamp)))
+    db.commit()
+
+
+def query_item_form_db():
+    c = db.cursor()
+    c.execute("select item from sell_record")
+    record = c.fetchall()
+    return record
+
+
+def query_item_detial(itemid):
+    """
+    查询物品的详细信息，查询制作配方和统计成本的前置方法
+    """
+    try:
+        query_url = 'https://garlandtools.cn/api/get.php?type=item&lang=chs&version=3&id=' + str(itemid)
+        result = get(query_url)
+        result = loads(result.text)
+        return result['item']['name']
+    except ConnectionError:
+        print("\n猴面雀发现网络有点问题，找不到想要的资料了")
+        return '未找到物品'
+
+
+def update_item_name_to_db(itemId, itemName):
+    c = db.cursor()
+    c.execute("update sell_record set itemname='%s' where item='%s'" % (itemName, itemId))
     db.commit()
 
 
@@ -70,13 +97,24 @@ db = pymysql.connect(
     charset='utf8'
 )
 
+
+# db = pymysql.connect(
+#     host='127.0.0.1',
+#     port=3309,
+#     user='root',
+#     password='NagaResst123456',
+#     database='papapa',
+#     charset='utf8'
+# )
+
 m_id = query_user_id()
 print("已经获取到需要匹配的对象%d个。" % len(m_id))
 # print(m_id)
 i_id = query_item_in_market()
 print("已经获取到可查询物品的ID。")
+startid = int(input('请输入开始ID'))
 for item_id in i_id:
-    if int(item_id) >= 7064:
+    if int(item_id) >= startid:
         try:
             item_record = ItemQuerier(item_id)
             print('正在查询物品id %s' % item_record.id)
@@ -95,10 +133,12 @@ for item_id in i_id:
                 if record['creatorID'] in m_id or record['sellerID'] in m_id:
                     print("已发现雇员 %s 正在售卖物品 %s" % (record['retainerName'], item_record.id))
                     if record['retainerID'] not in relist:
+                        itemName = query_item_detial(item_id)
                         insert_sell_to_db(record['worldName'], record['sellerID'], record['retainerName'],
-                                          record['retainerID'], item_record.id)
+                                          record['retainerID'], item_record.id, itemName)
                         print('已将雇员 %s 记录到数据库中' % record['retainerName'])
                         relist = relist.append(record['retainerID'])
         for record in history:
             if record['buyerName'] == '爱丽丝铃':
                 insert_buy_to_db(item_record.id, record['worldName'], record['timestamp'])
+db.close()
