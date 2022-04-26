@@ -129,7 +129,7 @@ for item_id in i_id:
             history = item_record.output_buyer()
         relist = []
         for record in listings:
-            if record['creatorID'] in m_id or record['sellerID'] in m_id:
+            if record['creatorID'] in m_id or record['sellerID'] in m_id or record['retainerID'] in m_id:
                 print("已发现雇员 %s 正在售卖物品 %s" % (record['retainerName'], item_record.id))
                 if record['retainerID'] not in relist:
                     itemName = query_item_detial(item_id)
