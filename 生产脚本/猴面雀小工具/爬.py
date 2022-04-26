@@ -15,19 +15,31 @@ class ItemQuerier(object):
         self.query_item()
 
     def query_item(self):
+        """
+        查询物品的市场交易记录
+        """
         query_url = 'https://universalis.app/api/猫小胖/%s?listings=20' % self.id
         result = get(query_url)
         result = result.text.replace('null', '"None"')
         self.result = loads(result)
 
     def output_sell_list(self):
+        """
+        输出正在板子上售卖的商品
+        """
         return self.result['listings']
 
     def output_buyer(self):
+        """
+        输出最近5次收购记录
+        """
         return self.result['recentHistory']
 
 
 def query_item_in_market():
+    """
+    查询所有可以在板子上交易的物品
+    """
     query_url = 'https://universalis.app/api/marketable'
     result = get(query_url)
     result = result.text.replace('[', '').replace(']', '')
@@ -36,6 +48,9 @@ def query_item_in_market():
 
 
 def query_user_id():
+    """
+    查询要匹配的身份ID
+    """
     c = db.cursor()
     c.execute("select user_id from mid")
     record = c.fetchall()
@@ -46,6 +61,9 @@ def query_user_id():
 
 
 def insert_sell_to_db(server, userId, retainerName, retainerId, itemId, itemName):
+    """
+    当发现匹配目标时插入数据库
+    """
     c = db.cursor()
     c.execute(
         "INSERT INTO sell_record ( server, userid,retainer,retainerid,item,itemname ) VALUES  ( '%s','%s','%s','%s','%s','%s' );" % (
@@ -54,6 +72,9 @@ def insert_sell_to_db(server, userId, retainerName, retainerId, itemId, itemName
 
 
 def insert_buy_to_db(itemId, server, timestamp):
+    """
+    当发现目标的购买行为时 插入数据库
+    """
     c = db.cursor()
     c.execute(
         "INSERT INTO buy_record ( item,server, timestamp ) VALUES  ( '%s','%s','%s' );" % (
@@ -62,6 +83,9 @@ def insert_buy_to_db(itemId, server, timestamp):
 
 
 def query_item_form_db():
+    """
+    只查询目标售卖的物品id
+    """
     c = db.cursor()
     c.execute("select item from sell_record")
     record = c.fetchall()
@@ -82,13 +106,10 @@ def query_item_detial(itemid):
         return '未找到物品'
 
 
-def update_item_name_to_db(itemId, itemName):
-    c = db.cursor()
-    c.execute("update sell_record set itemname='%s' where item='%s'" % (itemName, itemId))
-    db.commit()
-
-
 def delete_data_at_db():
+    """
+    清除数据库中上次查询的记录
+    """
     c = db.cursor()
     c.execute("delete from buy_record; delete from sell_record;")
     db.commit()
@@ -120,9 +141,10 @@ if yon == 'y':
     delete_data_at_db()
 i_id = query_item_in_market()
 print("已经获取到可查询物品的ID。")
-# startid = int(input('请输入开始ID'))
+# startid = int(input('请输入开始ID \n'))
+startid = 1
 for item_id in i_id:
-    if int(item_id) >= 1:
+    if int(item_id) >= startid:
         try:
             item_record = ItemQuerier(item_id)
             print('正在查询物品id %s' % item_record.id)
