@@ -133,7 +133,6 @@ class ItemQuerier(object):
             else:
                 print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d \t卖家雇员：%s''' % (
                     record['pricePerUnit'], record['quantity'], hq, record['total'], record['retainerName']))
-        print("历史平均成交价格 %d" % result['averagePrice'])
 
     def query_item_price(self):
         """
@@ -156,6 +155,7 @@ class ItemQuerier(object):
                 lastUploadTime = self.timestamp_to_time(self.result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
                 self.show_result(self.result)
+                print("%s的 全区服 历史平均成交价格 %d" % (self.result['dcName'], self.result['averagePrice']))
                 print('\n 以下是最近5次的售出记录')
                 for record in self.result['recentHistory']:
                     hq = self.hq_or_not(record['hq'])
@@ -424,6 +424,7 @@ def logo():
 @@@@@@@@@^.....................[O@/............[/`..........=@@OOOOOOOOO@
 =@@@@@@@@....................................................=@@@O@@@O@O@
 ========   欢迎使用猴面雀价格查询小工具    夕山菀@紫水栈桥   ============
+                                    Ver 1.0.3-b
 """)
 
 
