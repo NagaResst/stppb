@@ -2,7 +2,7 @@
 
 from json import loads
 from math import ceil
-from time import localtime, strftime
+from time import localtime, strftime, sleep
 
 from requests import get
 
@@ -44,10 +44,17 @@ class ItemQuerier(object):
         """
         查询结果序列化成字典
         """
-        result = get(url)
-        # 当属性的值为null的时候，无法转换成字典，将其替换为None
-        result = result.text.replace('null', '"None"')
-        result = loads(result)
+        result = None
+        try:
+            result = get(url)
+        except ConnectionError:
+            print('\n猴面雀发现网络有点问题，正准备再试一次')
+            sleep(15)
+            result = get(url)
+        finally:
+            # 当属性的值为null的时候，无法转换成字典，将其替换为None
+            result = result.text.replace('null', '"None"')
+            result = loads(result)
         return result
 
     @staticmethod
@@ -58,8 +65,8 @@ class ItemQuerier(object):
         if timestamp > 9999999999:
             timestamp = float(timestamp / 1000)
         timearray = localtime(timestamp)
-        res = strftime("%Y-%m-%d %H:%M:%S", timearray)
-        return res
+        result = strftime("%Y-%m-%d %H:%M:%S", timearray)
+        return result
 
     @staticmethod
     def hq_or_not(value):
@@ -125,14 +132,15 @@ class ItemQuerier(object):
             # uptime = self.timestamp_to_time(record['lastReviewTime'])
             if 'worldName' in record:
                 print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d\t服务器：%-5.4s \t卖家雇员：%s''' % (
-                    record['pricePerUnit'], record['quantity'], hq, record['total'], record['worldName'],
+                    record['pricePerUnit'], record['quantity'], hq, (record['total'] * 1.05), record['worldName'],
                     record['retainerName']))
             elif server is not None:
                 print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d\t服务器：%-5.4s \t卖家雇员：%s''' % (
-                    record['pricePerUnit'], record['quantity'], hq, record['total'], server, record['retainerName']))
+                    record['pricePerUnit'], record['quantity'], hq, (record['total'] * 1.05), server,
+                    record['retainerName']))
             else:
                 print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d \t卖家雇员：%s''' % (
-                    record['pricePerUnit'], record['quantity'], hq, record['total'], record['retainerName']))
+                    record['pricePerUnit'], record['quantity'], hq, (record['total'] * 1.05), record['retainerName']))
 
     def query_item_price(self):
         """
@@ -145,13 +153,15 @@ class ItemQuerier(object):
             pass
         else:
             if self.hq == "HQ" or self.hq == "hq":
-                query_url = 'https://universalis.app/api/v2/%s/%s?listings=15&hq=true' % (self.server, self.id)
+                query_url = 'https://universalis.app/api/v2/%s/%s?listings=15&hq=true&noGst=true' % (
+                    self.server, self.id)
             elif self.hq == "NQ" or self.hq == "nq":
-                query_url = 'https://universalis.app/api/v2/%s/%s?listings=15&hq=false' % (self.server, self.id)
+                query_url = 'https://universalis.app/api/v2/%s/%s?listings=15&hq=false&noGst=true' % (
+                    self.server, self.id)
             else:
-                query_url = 'https://universalis.app/api/%s/%s?listings=15' % (self.server, self.id)
-            try:
-                self.result = self.init_query_result(query_url)
+                query_url = 'https://universalis.app/api/%s/%s?listings=15&noGst=true' % (self.server, self.id)
+            self.result = self.init_query_result(query_url)
+            if len(self.result['listings']) > 0:
                 lastUploadTime = self.timestamp_to_time(self.result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
                 self.show_result(self.result)
@@ -162,14 +172,14 @@ class ItemQuerier(object):
                     buytime = self.timestamp_to_time(record['timestamp'])
                     if 'worldName' in record:
                         print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d\t服务器：%-5.4s\t买家：%-6s \t 购买时间：%s''' % (
-                            record['pricePerUnit'], record['quantity'], hq, record['total'], record['worldName'],
-                            record['buyerName'], buytime))
+                            record['pricePerUnit'], record['quantity'], hq, (record['total'] * 1.05),
+                            record['worldName'], record['buyerName'], buytime))
                     else:
                         print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d\t\t买家：%-6s \t\t 购买时间：%s''' % (
-                            record['pricePerUnit'], record['quantity'], hq, record['total'],
+                            record['pricePerUnit'], record['quantity'], hq, (record['total'] * 1.05),
                             record['buyerName'], buytime))
-            except ConnectionError:
-                print('\n猴面雀发现网络有点问题，找不到想要的资料了')
+            else:
+                print('\n猴面雀发现你要查询的物品并没有市场上出售！')
 
     def show_true_id(self, server=None):
         print('\n 显示 ' + self.name + ' ID:' + str(self.id) + ' 在板子上的真实身份ID')
@@ -217,11 +227,13 @@ class ItemQuerier(object):
             saletime = self.timestamp_to_time(record['timestamp'])
             if 'worldName' in record:
                 print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d\t服务器：%-5.4s\t\t 售出时间：%s''' % (
-                    record['pricePerUnit'], record['quantity'], hq, (record['pricePerUnit'] * record['quantity']),
+                    record['pricePerUnit'], record['quantity'], hq,
+                    (record['pricePerUnit'] * record['quantity'] * 1.05),
                     record['worldName'], saletime))
             else:
                 print('''单价：%-6d\t数量：%2d  %s\t总价：%-8d\t\t 售出时间：%s''' % (
-                    record['pricePerUnit'], record['quantity'], hq, (record['pricePerUnit'] * record['quantity']),
+                    record['pricePerUnit'], record['quantity'], hq,
+                    (record['pricePerUnit'] * record['quantity'] * 1.05),
                     saletime))
 
     @staticmethod
@@ -258,7 +270,7 @@ class ItemQuerier(object):
         查询单项物品的板子价格
         """
         try:
-            query_url = 'https://universalis.app/api/%s/%s?listings=%d' % (server, itemid, count)
+            query_url = 'https://universalis.app/api/%s/%s?listings=%d&noGst=true' % (server, itemid, count)
             result = self.init_query_result(query_url)
             return result
         except ConnectionError:
@@ -273,8 +285,6 @@ class ItemQuerier(object):
             print('.', end='')
             result = self.query_item_detial(unit['id'])
             stuff_list[i]['name'] = result['name']
-            # stuff_list[i]['pricePerUnit'] = self.query_item_cost_min(self.server, unit['id'], count=1)['listings'][0][
-            #     'pricePerUnit']
             query_result = self.query_item_cost_min(self.server, unit['id'], count=1)
             x = abs(query_result['averagePrice'] - query_result['listings'][0]['pricePerUnit'])
             if x > 300:
@@ -442,6 +452,7 @@ def logo():
 =@@@@@@@@....................................................=@@@O@@@O@O@
 ========   欢迎使用猴面雀价格查询小工具    夕山菀@紫水栈桥   ============
 ========     老婆！ 是老婆啊！！    琉森@紫水栈桥 专用版     ============
+                                                    Ver 1.2.2
 """)
 
 

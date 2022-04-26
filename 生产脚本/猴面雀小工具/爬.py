@@ -88,6 +88,12 @@ def update_item_name_to_db(itemId, itemName):
     db.commit()
 
 
+def delete_data_at_db():
+    c = db.cursor()
+    c.execute("delete from buy_record; delete from sell_record;")
+    db.commit()
+
+
 db = pymysql.connect(
     host='192.168.10.100',
     port=4000,
@@ -96,7 +102,6 @@ db = pymysql.connect(
     database='uupa',
     charset='utf8'
 )
-
 
 # db = pymysql.connect(
 #     host='127.0.0.1',
@@ -110,6 +115,9 @@ db = pymysql.connect(
 m_id = query_user_id()
 print("已经获取到需要匹配的对象%d个。" % len(m_id))
 # print(m_id)
+yon = input("是否需要清楚上次查询的记录")
+if yon == 'y':
+    delete_data_at_db()
 i_id = query_item_in_market()
 print("已经获取到可查询物品的ID。")
 # startid = int(input('请输入开始ID'))
