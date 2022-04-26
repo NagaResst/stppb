@@ -54,9 +54,9 @@ def query_user_id():
     c = db.cursor()
     c.execute("select user_id from mid")
     record = c.fetchall()
-    re_list = []
+    re_list = set()
     for i in record:
-        re_list.append(i[0])
+        re_list.add(i[0])
     return re_list
 
 
@@ -79,6 +79,18 @@ def insert_buy_to_db(itemId, server, timestamp):
     c.execute(
         "INSERT INTO buy_record ( item,server, timestamp ) VALUES  ( '%s','%s','%s' );" % (
             itemId, server, str(timestamp)))
+    db.commit()
+
+
+def insert_user_to_db(user_id, user=None):
+    """
+    当发现目标的购买行为时 插入数据库
+    """
+    c = db.cursor()
+    if user is None:
+        c.execute("INSERT INTO mid (user_id) VALUES ('%s');" % user_id)
+    elif user is not None:
+        c.execute("INSERT INTO mid (user , user_id) VALUES ('%s' , '%s');" % (user, user_id))
     db.commit()
 
 
@@ -144,6 +156,7 @@ print("已经获取到可查询物品的ID。")
 # startid = int(input('请输入开始ID \n'))
 startid = 1
 for item_id in i_id:
+    insert_uid_to_db = set()
     if int(item_id) >= startid:
         try:
             item_record = ItemQuerier(item_id)
@@ -159,15 +172,23 @@ for item_id in i_id:
             history = item_record.output_buyer()
         relist = []
         for record in listings:
+            temp_set = set()
             if record['creatorID'] in m_id or record['sellerID'] in m_id or record['retainerID'] in m_id:
                 print("已发现雇员 %s 正在售卖物品 %s" % (record['retainerName'], item_record.id))
+                insert_uid_to_db.add(record['creatorID'])
+                insert_uid_to_db.add(record['sellerID'])
+                temp_set = {record['creatorID'], record['sellerID'], record['retainerID']}
+                m_id.update(temp_set)
                 if record['retainerID'] not in relist:
                     itemName = query_item_detial(item_id)
                     insert_sell_to_db(record['worldName'], record['sellerID'], record['retainerName'],
                                       record['retainerID'], item_record.id, itemName)
+                    insert_user_to_db(record['retainerID'], record['retainerName'])
                     print('已将雇员 %s 记录到数据库中' % record['retainerName'])
                     relist.append(record['retainerID'])
         for record in history:
             if record['buyerName'] == '爱丽丝铃':
                 insert_buy_to_db(item_record.id, record['worldName'], record['timestamp'])
+        for i in insert_uid_to_db:
+            insert_user_to_db(i)
 db.close()

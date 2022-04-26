@@ -47,7 +47,7 @@ class ItemQuerier(object):
         result = None
         try:
             result = get(url)
-        except ConnectionError:
+        except:
             print('\n猴面雀发现网络有点问题，正准备再试一次')
             sleep(15)
             result = get(url)
@@ -88,12 +88,14 @@ class ItemQuerier(object):
         for i in itemlist:
             print("%-5.d  \t\t%s " % (x, i['Name']))
             x += 1
-        print('请输入要查询的物品编号，输入物品名重新查询')
+        print('请输入要查询的物品编号，输入物品名重新查询 ， 输入 b 取消查询')
         user_select = input()
         if user_select.isdigit():
             user_select = (int(user_select)) - 1
             self.id = itemlist[user_select]['ID']
             self.name = itemlist[user_select]['Name']
+        elif user_select == 'b' or user_select == 'B':
+            pass
         else:
             self.__init__(user_select, self.server)
             self.query_item_id()
@@ -109,7 +111,7 @@ class ItemQuerier(object):
             query_url = 'https://cafemaker.wakingsands.com/search?indexes=item&string=' + self.name
             print('\n猴面雀正在为您查找需要的数据，请稍候... ')
             result = get(query_url)
-        except ConnectionError:
+        except:
             print('\n猴面雀发现网络有点问题，找不到想要的资料了')
         try:
             itemstr = result.text.replace('null', '"None"')
@@ -119,8 +121,9 @@ class ItemQuerier(object):
                 self.name = itemde[0]['Name']
             elif len(itemde) > 1:
                 self.select_itemid(itemde)
-            print('猴面雀已经为您查找到物品 %s ID：%d' % (self.name, self.id))
-        except TypeError:
+            if self.id is not None:
+                print('猴面雀已经为您查找到物品 %s ID：%d' % (self.name, self.id))
+        except:
             print('\n猴面雀没有找到到您要查找的物品。')
 
     def show_result(self, result, server=None):
@@ -165,7 +168,7 @@ class ItemQuerier(object):
                 lastUploadTime = self.timestamp_to_time(self.result['lastUploadTime'])
                 print('\n猴面雀为您查找到 ' + self.name + ' 的最新在售信息。\t\t更新时间： ' + lastUploadTime)
                 self.show_result(self.result)
-                print("%s的 全区服 历史平均成交价格 %d" % (self.result['dcName'], self.result['averagePrice']))
+                print("%s的 全区服 历史平均成交价格 %d" % (self.server, self.result['averagePrice']))
                 print('\n 以下是最近5次的售出记录')
                 for record in self.result['recentHistory']:
                     hq = self.hq_or_not(record['hq'])
@@ -364,7 +367,6 @@ def select_server():
     服务器选择
     """
     server = input('请输入要查询的大区服务器,可输入大区简称，例如“ 1 猫、2 鸟、3 猪、4 狗 ” \n')
-    # server = '猫小胖'
     if server == '1' or server == '猫':
         server = '猫小胖'
         print("猴面雀将为您查询 猫小胖 的市场数据")
@@ -463,11 +465,11 @@ while True:
         selectd_server = select_server()
     item = None
     while True:
-        if item == 'back':
+        if item == 'b' or item == 'B':
             # 查询后返回选择服务器
             selectd_server = None
             break
-        print('请输入要查询的物品全名 , 输入 l 查询本地清单 , 或输入back返回选择服务器 \n')
+        print('请输入要查询的物品全名 , 输入 l 查询本地清单 , 或输入 b 返回选择服务器 \n')
         item = input()
         if item == 'l' or item == 'L':
             items = load_location_list()
@@ -475,7 +477,7 @@ while True:
         elif item is None or item == b'\n' or item == '':
             # 误触回车的容错  兼容两种系统
             pass
-        elif item == 'back':
+        elif item == 'b' or item == 'B':
             # 未查询返回选择服务器
             selectd_server = None
             break
@@ -489,10 +491,10 @@ while True:
                 select = input("""
 输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价 
 输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 查询本地清单
-输入其他道具名继续查询，或输入back返回选择服务器 \n
+输入其他道具名继续查询，或输入 b 返回选择服务器 \n
 """)
-                if select == 'back':
-                    item = 'back'
+                if select == 'b' or select == 'B':
+                    item = 'b'
                     break
                 elif select == "h" or select == "H":
                     item.show_sale_history()
