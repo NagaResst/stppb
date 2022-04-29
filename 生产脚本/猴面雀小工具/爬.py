@@ -1,3 +1,4 @@
+#! /usr/bin/python3
 from json import loads
 from time import sleep
 
@@ -66,7 +67,7 @@ def insert_sell_to_db(server, userId, retainerName, retainerId, itemId, itemName
     """
     c = db.cursor()
     c.execute(
-        "INSERT INTO sell_record ( server, userid,retainer,retainerid,item,itemname ) VALUES  ( '%s','%s','%s','%s','%s','%s' );" % (
+        "INSERT INTO sell_record ( server, userid,retainer,retainerid,item,itemname ) VALUES  ( '%s','%s','%s','%s','%s','%s');" % (
             server, userId, retainerName, retainerId, itemId, itemName))
     db.commit()
 
@@ -82,28 +83,6 @@ def insert_buy_to_db(itemId, server, timestamp):
     db.commit()
 
 
-def insert_user_to_db(user_id, user=None):
-    """
-    当发现目标的购买行为时 插入数据库
-    """
-    c = db.cursor()
-    if user is None:
-        c.execute("INSERT INTO mid (user_id) VALUES ('%s');" % user_id)
-    elif user is not None:
-        c.execute("INSERT INTO mid (user , user_id) VALUES ('%s' , '%s');" % (user, user_id))
-    db.commit()
-
-
-def query_item_form_db():
-    """
-    只查询目标售卖的物品id
-    """
-    c = db.cursor()
-    c.execute("select item from sell_record")
-    record = c.fetchall()
-    return record
-
-
 def query_item_detial(itemid):
     """
     查询物品的详细信息，查询制作配方和统计成本的前置方法
@@ -113,7 +92,7 @@ def query_item_detial(itemid):
         result = get(query_url)
         result = loads(result.text)
         return result['item']['name']
-    except ConnectionError:
+    except:
         print("\n猴面雀发现网络有点问题，找不到想要的资料了")
         return '未找到物品'
 
@@ -127,36 +106,34 @@ def delete_data_at_db():
     db.commit()
 
 
-db = pymysql.connect(
-    host='192.168.10.100',
-    port=4000,
-    user='uupa',
-    password='lingchuan',
-    database='uupa',
-    charset='utf8'
-)
-
 # db = pymysql.connect(
-#     host='127.0.0.1',
-#     port=3309,
-#     user='root',
-#     password='NagaResst123456',
-#     database='papapa',
+#     host='192.168.10.100',
+#     port=4000,
+#     user='uupa',
+#     password='lingchuan',
+#     database='uupa',
 #     charset='utf8'
 # )
 
+db = pymysql.connect(
+    host='127.0.0.1',
+    port=3309,
+    user='root',
+    password='NagaResst123456',
+    database='papapa',
+    charset='utf8'
+)
+
 m_id = query_user_id()
 print("已经获取到需要匹配的对象%d个。" % len(m_id))
-# print(m_id)
-yon = input("是否需要清楚上次查询的记录")
+yon = input("是否需要清除上次查询的记录")
 if yon == 'y':
     delete_data_at_db()
 i_id = query_item_in_market()
 print("已经获取到可查询物品的ID。")
-# startid = int(input('请输入开始ID \n'))
-startid = 1
+startid = int(input('请输入开始ID \n'))
+# startid = 5706
 for item_id in i_id:
-    insert_uid_to_db = set()
     if int(item_id) >= startid:
         try:
             item_record = ItemQuerier(item_id)
@@ -172,23 +149,13 @@ for item_id in i_id:
             history = item_record.output_buyer()
         relist = []
         for record in listings:
-            temp_set = set()
             if record['creatorID'] in m_id or record['sellerID'] in m_id or record['retainerID'] in m_id:
                 print("已发现雇员 %s 正在售卖物品 %s" % (record['retainerName'], item_record.id))
-                insert_uid_to_db.add(record['creatorID'])
-                insert_uid_to_db.add(record['sellerID'])
-                temp_set = {record['creatorID'], record['sellerID'], record['retainerID']}
-                m_id.update(temp_set)
                 if record['retainerID'] not in relist:
                     itemName = query_item_detial(item_id)
                     insert_sell_to_db(record['worldName'], record['sellerID'], record['retainerName'],
                                       record['retainerID'], item_record.id, itemName)
-                    insert_user_to_db(record['retainerID'], record['retainerName'])
                     print('已将雇员 %s 记录到数据库中' % record['retainerName'])
-                    relist.append(record['retainerID'])
         for record in history:
             if record['buyerName'] == '爱丽丝铃':
                 insert_buy_to_db(item_record.id, record['worldName'], record['timestamp'])
-        for i in insert_uid_to_db:
-            insert_user_to_db(i)
-db.close()
