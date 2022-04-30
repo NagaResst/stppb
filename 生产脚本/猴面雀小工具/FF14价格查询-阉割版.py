@@ -371,14 +371,14 @@ def load_location_list():
     """
     try:
         print("猴面雀正在查找你的本地清单")
-        with open(r'FF14价格查询清单.txt', 'r') as list_file:
+        with open(r'FF14价格查询清单.txt', 'r', encoding='utf-8') as list_file:
             list_text = list_file.read()
             item_list = list_text.split('\n')
         return item_list
     except IOError:
-        with open(r'FF14价格查询清单.txt', 'w') as list_file:
+        with open(r'FF14价格查询清单.txt', 'w', encoding='utf-8') as list_file:
             list_file.write('')
-        print('同目录下没有找到“FF14价格查询清单.txt” ，已为您生成空文件，一行写入一个物品')
+        print('同目录下没有找到 “FF14价格查询清单.txt” ，已为您生成空文件，一行写入一个物品')
 
 
 def select_locaiton_item(item_list):
@@ -395,8 +395,11 @@ def select_locaiton_item(item_list):
             print("%-4d\t%s" % (i, this_item))
             i += 1
         selectd_item = int(input())
-        print("已选择 %s" % item_list[selectd_item - 1])
-        return item_list[selectd_item - 1]
+        if item_list[0] != '':
+            print("已选择 %s" % item_list[selectd_item - 1])
+            return item_list[selectd_item - 1]
+        else:
+            return None
 
 
 def logo():
@@ -434,7 +437,7 @@ def logo():
 @@@@@@@@@^.....................[O@/............[/`..........=@@OOOOOOOOO@
 =@@@@@@@@....................................................=@@@O@@@O@O@
 ========   欢迎使用猴面雀价格查询小工具    夕山菀@紫水栈桥   ============
-                                        Ver 1.0.4-b
+                                        Ver 1.0.5-b
 """)
 
 
@@ -446,9 +449,17 @@ while True:
         if item == 'back':
             # 查询后返回选择服务器
             break
-        print('请输入要查询的物品全名 , 或输入back返回选择服务器 \n')
+        print('请输入要查询的物品全名 , 或输入back返回选择服务器, 输入 l 查询本地清单 \n')
         item = input()
-        if item is None or item == b'\n' or item == '':
+        if item == 'l' or item == 'L':
+            items = load_location_list()
+            item = select_locaiton_item(items)
+            if item is not None and item != '':
+                item = ItemQuerier(item, selectd_server)
+                item.query_item_price()
+            else:
+                pass
+        elif item is None or item == b'\n' or item == '':
             # 误触回车的容错  兼容两种系统
             pass
         elif item == 'back':
@@ -463,10 +474,10 @@ while True:
                     # 一种ID为空时的容错机制
                     break
                 select = input("""
-输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价 , 输入 2 查询制作材料 
+输入 h 查询售出历史 , 输入 m 查询更多出售信息,  输入 o 显示所有区服的最低价 
+输入 2 查询制作材料 , 输入 l 查询本地清单
 输入其他道具名继续查询，或输入back返回选择服务器 \n
 """)
-                # 输入 2 查询制作材料 , 输入 3 查询制作成本 , 输入 l 查询本地清单
                 if select == 'back':
                     item = 'back'
                     break
@@ -479,16 +490,17 @@ while True:
                 elif select == "2":
                     item.query_item_craft()
                     item.show_item_craft(item.stuff)
-                elif select == b'\n' or select == '':
-                    pass
                 # elif select == "3":
                 #     item.query_item_craft()
                 #     item.show_item_cost()
-                # elif select == 'l' or item == 'L':
-                #     items = load_location_list()
-                #     item = select_locaiton_item(items)
-                #     item = ItemQuerier(item, selectd_server)
-                #     item.query_item_price()
+                elif select == 'l' or item == 'L':
+                    items = load_location_list()
+                    item = select_locaiton_item(items)
+                    item = ItemQuerier(item, selectd_server)
+                    item.query_item_price()
+                elif select == b'\n' or select == '':
+                    # 误触回车的容错  兼容两种系统
+                    pass
                 else:
                     item = select
                     item = ItemQuerier(item, selectd_server)
