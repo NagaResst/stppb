@@ -325,7 +325,7 @@ class ItemQuerier(object):
     #         else:
     #             self.o_cost = self.o_cost + price
     #     return d_cost
-
+    #
     # def show_item_cost(self):
     #     """
     #     显示物品的制作成本的外壳
@@ -394,7 +394,10 @@ def select_locaiton_item(item_list):
         for this_item in item_list:
             print("%-4d\t%s" % (i, this_item))
             i += 1
-        selectd_item = int(input())
+        selectd_item = input()
+        if selectd_item is None or selectd_item == b'\n' or selectd_item == '':
+            return None
+        selectd_item = int(selectd_item)
         if item_list[0] != '':
             print("已选择 %s" % item_list[selectd_item - 1])
             return item_list[selectd_item - 1]
@@ -437,35 +440,28 @@ def logo():
 @@@@@@@@@^.....................[O@/............[/`..........=@@OOOOOOOOO@
 =@@@@@@@@....................................................=@@@O@@@O@O@
 ========   欢迎使用猴面雀价格查询小工具    夕山菀@紫水栈桥   ============
-                                        Ver 1.0.5-b
+                                        Ver 1.1.1-b
 """)
 
 
+selectd_server = None
 logo()
 while True:
-    selectd_server = select_server()
-    item = None
+    if selectd_server is None:
+        selectd_server = select_server()
+    print('请输入要查询的物品全名 , 输入 l 查询本地清单 , 或输入back返回选择服务器 \n')
+    item = input()
     while True:
         if item == 'back':
             # 查询后返回选择服务器
+            selectd_server = None
             break
-        print('请输入要查询的物品全名 , 或输入back返回选择服务器, 输入 l 查询本地清单 \n')
-        item = input()
-        if item == 'l' or item == 'L':
+        elif item == 'l' or item == 'L':
             items = load_location_list()
             item = select_locaiton_item(items)
-            if item is not None and item != '':
-                item = ItemQuerier(item, selectd_server)
-                item.query_item_price()
-            else:
-                pass
         elif item is None or item == b'\n' or item == '':
             # 误触回车的容错  兼容两种系统
             pass
-        elif item == 'back':
-            # 未查询返回选择服务器
-            selectd_server = None
-            break
         else:
             item = ItemQuerier(item, selectd_server)
             item.query_item_price()
