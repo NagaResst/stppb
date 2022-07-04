@@ -1,20 +1,20 @@
 #! /bin/python3
 # -*- coding:UTF-8 -*-
 # {
-#   "install_path": "/home",
-# 	"modify_bootstrap": "True",
-# 	"nacos_addr": "192.168.100.100:8848",
-# 	"nacos_namespace": "namespace-test-namespace",
-# 	"nacos_user": "ENC(username)",
-# 	"nacos_passwd": "ENC(password)",
-# 	"jar_actived": "test",
-# 	"seata_addr": "192.168.100.100:8091",
-# 	"seata_conf_namespace": "namespace-seata-namespace"
+#   "install_path": r"/home",
+#   "modify_bootstrap": "True",
+#   "nacos_addr": "192.168.100.100:8848",
+#   "nacos_namespace": "namespace-test-namespace",
+#   "nacos_user": "ENC(username)",
+#   "nacos_passwd": "ENC(password)",
+#   "jar_actived": "test",
+#   "seata_addr": "192.168.100.100:8091",
+#   "seata_conf_namespace": "namespace-seata-namespace"
 # }
 
 import os
-import shutil
 import re
+import shutil
 import zipfile
 
 
@@ -109,45 +109,19 @@ WantedBy=multi-user.target
             unit.close()
             print("服务 " + self.service + " 的unit已经写入")
 
-    def winsw(self):
-        service_exec = self.install_path + '/' + self.service + '.exe'
-        shutil.copy('winsw.exe', service_exec)
-        ServiceFile = """<service>
-  <id>%s</id>
-  <name>%s</name>
-  <startmode>Automatic</startmode>
-  <workingdirectory>%s</workingdirectory>
-  <executable>java</executable>
-  <arguments>-jar -Dfile.encoding=utf-8 --spring.cloud.bootstrap.location=%s %s</arguments>
-  <log mode="none">
-  </log>
-</service>
-        """ % (self.service, self.service, self.install_path, (self.install_path + '/bootstrap.yml'), self.file)
-        with open((self.install_path + '/' + self.service + '.xml'), 'w', encoding='utf-8') as windowsService:
-            windowsService.write(ServiceFile)
-            windowsService.close()
-        cupath = os.getcwd()
-        os.system('cd %s && %s && cd %s ' % (self.install_path, (service_exec + ' install'), cupath))
-        print("服务 " + self.service + " 的Service已经写入")
-
-    def install_service(self, tos):
-        if tos == 'Linux':
-            self.systemd_units()
-        elif tos == 'Windows':
-            self.winsw()
+    def install_service(self):
+        self.systemd_units()
         shutil.rmtree('BOOT-INF')
 
 
 def get_system_type():
-    if os.name == 'posix':
-        javapath0 = str(os.popen('whereis java').readlines())
-        javapath = re.findall(r": (.*)\\", javapath0)
-        if len(javapath) == 0:
-            input('本机没有安装java环境，按回车退出')
-            quit()
-        return 'Linux', javapath[0]
-    elif os.name == 'nt':
-        return 'Windows', None
+
+    javapath0 = str(os.popen('whereis java').readlines())
+    javapath = re.findall(r": (.*)\\", javapath0)
+    if len(javapath) == 0:
+        input('本机没有安装java环境，按回车退出')
+        quit()
+    return 'Linux', javapath[0]
 
 
 def load_config(load_file='install_config.json'):
@@ -180,7 +154,7 @@ for file in need_deploy_list:
     file.initialize(config)
     file.ost = ostype
     file.distribute_file()
-    file.install_service(ostype)
+    file.install_service()
     if ostype == 'Linux':
         os.system('systemctl daemon-reload')
         os.system('systemctl enable --now ' + file.service)

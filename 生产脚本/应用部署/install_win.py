@@ -8,14 +8,13 @@
 # 	"nacos_user": "ENC(username)",
 # 	"nacos_passwd": "ENC(password)",
 # 	"jar_actived": "test",
-# 	"seata_addr": "192.168.100.100:8091",
-# 	"seata_conf_namespace": "namespace-seata-namespace"
 # }
 
 import os
 import shutil
 # import re
 import zipfile
+
 import yaml
 
 
@@ -101,6 +100,7 @@ class Service(object):
   <name>%s</name>
   <startmode>Automatic</startmode>
   <workingdirectory>%s</workingdirectory>
+  <description> </description>
   <executable>java</executable>
   <arguments>-jar -Dfile.encoding=utf-8 --spring.cloud.bootstrap.location=%s %s</arguments>
   <log mode="none">
