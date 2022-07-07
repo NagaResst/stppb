@@ -26,7 +26,7 @@ read -r -p "本次发版是否启用验证过程，输入w等待，输入n不等
 for ip in ${backend_ips[*]}
 do
   echo "进行${ip}的后端发版的准备工作"
-  ssh root@$ip "sh $backend_app_path/bin/shutdown.sh;sleep 3; kill -9 $(ps -e | grep java | awk '{print $1}')"
+  ssh root@$ip "sh $backend_app_path/bin/shutdown.sh"
   echo "已经停止项目的运行,正在进行发版的准备。"
   ssh root@$ip "mkdir -p $backup_path/$date_now/ ; mv $backend_app_path/webapps/ROOT.war $backup_path/$date_now/$(date +%Y-%m-%d_%R).war ; rm -rf $backend_app_path/webapps/* "
   echo "开始发版"

@@ -12,7 +12,7 @@ function cmd5() {
   fi
 }
 
-inotifywait -mrq --format  '%w%f' -e close_write,move /home/data/ | while read file
+inotifywait -mrq --format  '%w%f' -e close_write,move /home/data/ | while read -r file
 # 监听目录内文件的“写入关闭”、“移动”行为 并将结果传递给while执行
 do
 if [ "${file##*.}"x = "md5"x ]

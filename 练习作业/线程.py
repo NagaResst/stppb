@@ -91,7 +91,7 @@ def killing():
         while not isBreak:
             isBreak = True
             for cmd in l_commander:
-                if cmd.soldier.isStopped == False:
+                if cmd.soldier.isStopped is False:
                     isBreak = False
                     # Check the results of the battle at the schedule time.
                     for cmd in l_commander:

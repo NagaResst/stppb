@@ -1,9 +1,6 @@
 def add_card():
     global card_list
-    add_card = {}
-    add_card['index'] = len(card_list)
-    add_card['name'] = input("请输入姓名")
-    add_card['mobile'] = input("请输入手机号")
+    add_card = {'index': len(card_list), 'name': input("请输入姓名"), 'mobile': input("请输入手机号")}
     card_list.append(add_card)
 
 
@@ -35,7 +32,7 @@ def find_card():
     elif find_method == "0":
         return None
     else:
-        find_method = input("请选择你要查找名片的方法，\n1.按照姓名查找\n2.按照号码查找\n输入0返回主菜单")
+        pass
 
 
 def edit_card():
