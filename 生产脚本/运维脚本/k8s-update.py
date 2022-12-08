@@ -7,7 +7,7 @@ import os
 import requests
 
 
-def sender(project='project', workload='service', body=None):
+def sender(body=None):
     url = 'https://oapi.dingtalk.com/robot/send?access_token='
     header = {"Content-Type": "application/json"}
     result = requests.post(url=url, data=json.dumps(body), headers=header)
@@ -31,8 +31,7 @@ def update(**kwargs):
             print('无法发送消息，命令执行错误')
             data = {"msgtype": "text", "text": {
                 "content": "K8S集群 @ {} 进行 \n项目: {} 的 {} 重新部署失败，命令执行错误。".format(now, project, workload)}}
-        sender(project=project, workload=workload, body=data)
-
+        sender(body=data)
     else:
         print('error 400 , parameter error')
 
