@@ -115,7 +115,6 @@ WantedBy=multi-user.target
 
 
 def get_system_type():
-
     javapath0 = str(os.popen('whereis java').readlines())
     javapath = re.findall(r": (.*)\\", javapath0)
     if len(javapath) == 0:
