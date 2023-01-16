@@ -10,30 +10,33 @@ import requests
 def sender(body=None):
     url = 'https://oapi.dingtalk.com/robot/send?access_token='
     header = {"Content-Type": "application/json"}
-    result = requests.post(url=url, data=json.dumps(body), headers=header)
-    print(result.status_code, result.text)
+    requests.post(url=url, data=json.dumps(body), headers=header)
+    print('Message has been sent')
 
 
 def update(**kwargs):
     project = kwargs['project']
     workload = kwargs['workload']
     if project is not None and workload is not None:
+        text_rep = '{"spec":{"replicas":1}}'
+        set_replicas = """kubectl patch deployment {} -p '{}' -n {}""".format(workload, text_rep, project)
+        os.system(set_replicas)
         commond_text = 'kubectl get deployments.apps {} -o yaml -n {} | kubectl replace --force -f -'.format(
             workload, project)
         exit_code = os.system(commond_text)
-        print(exit_code, type(exit_code))
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         if exit_code == 0:
-            print('准备发送消息')
+            print('Preparing to send message')
             data = {"msgtype": "text",
                     "text": {"content": "K8S集群 @ {} 进行 \n项目: {} 的 {} 重新部署".format(now, project, workload)}}
         else:
-            print('无法发送消息，命令执行错误')
+            print('Execution error, can not send message')
             data = {"msgtype": "text", "text": {
-                "content": "K8S集群 @ {} 进行 \n项目: {} 的 {} 重新部署失败，命令执行错误。".format(now, project, workload)}}
+                "content": "K8S集群 @ {} 进行 \n项目: {} 的 {} 重新部署失败，命令执行错误。".format(now, project,
+                                                                                                  workload)}}
         sender(body=data)
     else:
-        print('error 400 , parameter error')
+        print('Error 400 , parameter error')
 
 
 parser = argparse.ArgumentParser()
