@@ -32,8 +32,7 @@ def update(**kwargs):
         else:
             print('Execution error, can not send message')
             data = {"msgtype": "text", "text": {
-                "content": "K8S集群 @ {} 进行 \n项目: {} 的 {} 重新部署失败，命令执行错误。".format(now, project,
-                                                                                                  workload)}}
+                "content": "K8S集群 @ {} 进行 \n项目: {} 的 {} 重新部署失败，命令执行错误。".format(now, project, workload)}}
         sender(body=data)
     else:
         print('Error 400 , parameter error')
