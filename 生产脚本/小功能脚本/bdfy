@@ -1,0 +1,80 @@
+#! /usr/bin/python
+import requests
+import random
+import json
+from hashlib import md5
+import argparse
+
+
+class translater(object):
+    def __init__(self, text='No input') -> None:
+        self.__url = 'https://fanyi-api.baidu.com/api/trans/vip/translate'
+
+        # Set my own appid/appkey.
+        self.__appid = '20230222001570935'
+        self.__appkey = 'FyrpKzkdSOg2dVYoRfgM'
+
+        # For list of language codes, please refer to `https://fanyi-api.baidu.com/doc/21`
+        self.from_lang = ''
+        self.to_lang = ''
+
+        self.__url = 'https://fanyi-api.baidu.com/api/trans/vip/translate'
+
+        self.__headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'user-agent': 'GHMesLing'
+        }
+
+        self.query = str(text)
+
+    def translate(self):
+        salt = random.randint(100000000, 999999999)
+        sign = md5(
+            (self.__appid + self.query + str(salt) + self.__appkey).encode('utf-8')).hexdigest()
+        # Build request
+        payload = {'appid': self.__appid, 'q': self.query, 'from': self.from_lang,
+                   'to': self.to_lang, 'salt': salt, 'sign': sign}
+
+        # Send request
+        self.result = requests.post(
+            self.__url, params=payload, headers=self.__headers).json()
+
+        # Show response
+        return json.dumps(self.result, indent=4, ensure_ascii=False)
+
+
+def is_contain_chinese(check_str):
+    for ch in check_str:
+        if u'\u4e00' <= ch <= u'\u9fff':
+            return True
+    return False
+
+
+if __name__ == '__main__':
+    requester = argparse.ArgumentParser(
+        prog='fanyi', description='一个超轻量级的翻译工具。 powered by 百度翻译平台')
+    requester.add_argument('-f', "--from", dest='from_language', type=str,
+                           help='原始语言', default='auto', required=False)
+    requester.add_argument('-t', "--to", dest='to_language', type=str,
+                           help='目标语言', required=False)
+    requester.add_argument('text')
+    requester.args = requester.parse_args()
+    trans = translater()
+    # print(requester.args, is_contain_chinese(requester.args.text))
+    trans.from_lang = requester.args.from_language
+    if is_contain_chinese(requester.args.text):
+        trans.to_lang = 'en'
+    elif is_contain_chinese(requester.args.text) is False and requester.args.to_language is None:
+        requester.args.text = requester.args.text.replace(". ",". \n")
+        trans.to_lang = 'zh'
+    else:
+        trans.to_lang = requester.args.to_language
+    trans.query = requester.args.text
+    # trans.query = '语言'
+    result = eval(trans.translate())
+    # print(en)
+    # print('由 ' + str(result['from']) + ' 翻译为 ' + str(result['to']))
+
+    for r in result['trans_result']:
+        print('\n原文: ' + r['src'])
+        print('译文: ' + r['dst'])
