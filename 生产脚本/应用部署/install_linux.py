@@ -128,7 +128,6 @@ with open('/etc/logrotate.d/bbway.conf', 'w', encoding='UTF-8') as logrotate_con
 copytruncate
 compress
 delaycompress
-create 0550 owner group
 missingok
 notifempty
 daily
