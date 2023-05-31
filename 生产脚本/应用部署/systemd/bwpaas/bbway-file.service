@@ -1,0 +1,18 @@
+tee /usr/lib/systemd/system/bbway-file.service <<- 'EOF'
+[Unit]
+Description= BWPAAS file service. Copyright (c) 2006-2023 Bbrightway.
+After=network.target
+
+[Service]
+EnvironmentFile=-/opt/project/service/cloud.conf
+ExecStart=java -jar /opt/project/service/bbway-file-service.jar
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=bbway-file
+Type=simple
+Restart=on-failure
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target
+EOF

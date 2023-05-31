@@ -1,0 +1,69 @@
+server {
+    listen                  443 ssl;
+    server_name             _;
+
+    # ssl证书与加密协议配置
+    ssl_certificate /etc/letsencrypt/live/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/privkey.pem;
+ 
+
+    # logging
+    access_log    /home/nginx/logs/access.log main;
+    error_log     /home/nginx/logs/error.log error;
+
+
+
+    # security headers
+    add_header X-XSS-Protection          "1; mode=block" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    add_header Referrer-Policy           "no-referrer-when-downgrade" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+
+    # reverse proxy
+    location /api {
+        proxy_pass  http://gateway-service:9000;
+        proxy_set_header Host $host;
+        include  proxy.conf;
+    }
+
+    location /uic {
+        proxy_pass http://web-service;
+        include  proxy.conf;
+    }
+
+    location /ms {
+        proxy_pass  http://web-service;
+        include  proxy.conf;
+    }
+
+
+    location /job {
+        proxy_pass  http://web-service;
+        include  proxy.conf;
+    }
+
+    location /miniodata {
+        proxy_pass            http://file-service;
+        proxy_set_header Host $host;
+        include  proxy.conf;
+    }
+
+    location /websocket {
+        proxy_pass http://ms-service/;
+        proxy_set_header Host $host;
+        include  proxy.conf;
+    }
+
+    location / {
+        proxy_pass            http://web-service;
+        proxy_set_header Host $host;
+        include  proxy.conf;
+    }
+
+
+    location = /favicon.ico {
+        log_not_found off;
+    }
+}
+

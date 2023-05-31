@@ -1,0 +1,18 @@
+tee /usr/lib/systemd/system/bbway-user.service <<- 'EOF'
+[Unit]
+Description= BWPAAS User Center. Copyright (c) 2006-2023 Bbrightway.
+After=network.target
+
+[Service]
+EnvironmentFile=-/opt/project/service/cloud.conf
+ExecStart=java -jar /opt/project/service/bbway-user-service.jar 
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=bbway-user
+Type=simple
+Restart=on-failure
+RestartSec=30s
+
+[Install]
+WantedBy=multi-user.target
+EOF
