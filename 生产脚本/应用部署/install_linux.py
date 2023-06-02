@@ -10,7 +10,11 @@ import shutil
 class Service(object):
     def __init__(self, filename, path='/opt'):
         self.file = filename
-        self.service = filename.split('.')[0]
+        self.service = ""
+        for i in filename.replace('jar','').split('.')[0].replace('service','').replace('cloud','').split('-'):
+            if i != "":
+                self.service = self.service + i + '-'
+        self.service = self.service.rstrip(r"-")
         self.install_path = path + '/service'
         self.path = None
         self.env = None
@@ -21,7 +25,7 @@ class Service(object):
         try:
             os.makedirs(self.install_path)
         except:
-            print("服务部署路径已经存在")
+            pass
         # 初始化文件部署路径
         self.path = self.install_path + '/' + self.file
         try:
@@ -34,7 +38,7 @@ class Service(object):
 
     def systemd_units(self):
         unitFile = """[Unit]
-Description=%s
+Description= %s. Copyright (c) 2006-2023 .
 After=network.target
 
 [Service]
@@ -49,8 +53,8 @@ RestartSec=30s
 
 [Install]
 WantedBy=multi-user.target
-""" % (self.service, self.install_path, self.env, self.file, self.service)
-        unitsPath = '/var/lib/systemd/system/' + self.service + '.service'
+""" % (self.service, self.install_path, self.env, self.path, self.service)
+        unitsPath = '/usr/lib/systemd/system/' + self.service + '.service'
         with open(unitsPath, 'w', encoding='utf-8') as unit:
             unit.write(unitFile)
             unit.close()
@@ -67,7 +71,9 @@ def get_system_type():
         input('本机没有安装java环境，按回车退出')
         quit()
     else:
-        return javapath[0]
+        for i in javapath:
+            if not os.path.isdir(i):
+                return i
 
 
 def load_deploy_list():
