@@ -33,6 +33,7 @@ def get_chapter_table(url):
     返回值:
     list - 包含章节名和对应URL的字典列表
     """
+    base_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
     _chapter_table = []
     _html_content = request_data(url)  # 从URL获取HTML内容
     _soup = BeautifulSoup(_html_content, "html.parser")  # 解析HTML内容
@@ -89,6 +90,7 @@ def text_filter(page_text):
     page_text = page_text.text.replace("　", "\n")
     page_text = page_text.replace("        ", "\n")
     page_text = page_text.replace("天才一秒记住本站地址：www.2mcnxs.com。顶点小说手机版阅读网址：2mcnxs.com", "")
+    page_text = page_text.replace("请记住本书首发域名：www.cxbz958.org。鬼吹灯手机版阅读网址：m.cxbz958.org", "")
 
     lines = []
     # 对处理后的文本去除多余的空行
@@ -122,31 +124,44 @@ def count_valid_characters(text):
     return len(_matches)
 
 
-# 网站根地址和目标章节表URL
-chapter_table_url = "https://www.2mcnxs.com/html/book/17/17167/"  # 目标网页URL
-base_url = f"{urlparse(chapter_table_url).scheme}://{urlparse(chapter_table_url).netloc}"
+def download_book(url):
+    """
+    抓取指定URL的网页内容，并解析出章节表。
 
-# 获取章节表
-chapter_table = get_chapter_table(chapter_table_url)
+    参数:
+    url (str): 需要抓取的网页URL。
 
-# 获取书籍名称和作者
-chapter_table_page = BeautifulSoup(request_data(chapter_table_url), "html.parser")
-book_author = chapter_table_page.find_all("meta", attrs={"property": "og:novel:author"})[0]['content']
-book_name = chapter_table_page.find_all("meta", attrs={"property": "og:novel:book_name"})[0]['content']
-print(f"书籍名称：{book_name} 作者：{book_author}")
+    返回值:
+    无返回值，但会将获取到的章节表存储在chapter_table变量中。
+    """
 
-# 使用线程池并发地获取所有章节的文本
-thread_pool = ThreadPoolExecutor(max_workers=30)
-thread_pool.map(get_chapter_text, chapter_table)
-thread_pool.shutdown(wait=True)
+    # 获取章节表
+    chapter_table = get_chapter_table(url)
 
-# 多线程执行会忽略报错，调试的时候需要使用单线程模式
-# for chapter in chapter_table:
-#     get_chapter_text(chapter)
+    # 获取书籍名称和作者
+    chapter_table_page = BeautifulSoup(request_data(url), "html.parser")
+    book_author = chapter_table_page.find_all("meta", attrs={"property": "og:novel:author"})[0]['content']
+    book_name = chapter_table_page.find_all("meta", attrs={"property": "og:novel:book_name"})[0]['content']
+    print(f"书籍名称：{book_name} 作者：{book_author}")
 
-# 将所有章节文本写入一个文本文件
-with open(f"{book_name}_{book_author}.txt", "a", encoding="utf-8") as f:
-    f.write(f"《{book_name}》    作者： {book_author}")
-    for chapter in chapter_table[12:]:  # 跳过最新更新章节
-        f.write(f"\n\n\n{chapter['chapter']}\n本章字数： {chapter['chapter_text_length']}\n\n")  # 每章之前添加标题和空行
-        f.write(chapter["chapter_text"])
+    # 使用线程池并发地获取所有章节的文本
+    thread_pool = ThreadPoolExecutor(max_workers=30)
+    thread_pool.map(get_chapter_text, chapter_table)
+    thread_pool.shutdown(wait=True)
+
+    # 多线程执行会忽略报错，调试的时候需要使用单线程模式
+    # for chapter in chapter_table:
+    #     get_chapter_text(chapter)
+
+    # 将所有章节文本写入一个文本文件
+    with open(f"{book_name}_{book_author}.txt", "a", encoding="utf-8") as f:
+        f.write(f"《{book_name}》    作者： {book_author}")
+        for chapter in chapter_table[12:]:  # 跳过最新更新章节
+            f.write(f"\n\n\n{chapter['chapter']}\n本章字数： {chapter['chapter_text_length']}\n\n")  # 每章之前添加标题和空行
+            f.write(chapter["chapter_text"])
+
+
+if __name__ == "__main__":
+    # 待抓取的URL
+    url = "http://www.cxbz958.org/doukai/index.html"
+    download_book(url)
