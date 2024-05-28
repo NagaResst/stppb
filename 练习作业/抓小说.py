@@ -17,10 +17,11 @@ def request_data(url):
     """
     # 设置请求头，伪装为Chrome浏览器发送请求
     _headers = {
-        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "Accept-Encoding": "gzip, deflate, br",
-        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6",
+        "Accept-Language": "zh-CN,zh",
+        "Content-Type": "text/html;charset=utf-8",
         "Connection": "keep-alive",
         "Host": urlparse(url).netloc,
         "Upgrade-Insecure-Requests": "1",
@@ -34,8 +35,13 @@ def request_data(url):
         "DNT": "1",
     }
     # 发送GET请求并获取响应内容
-    _response = get(url, headers=_headers)
-    return _response.text
+    while True:
+        try:
+            _response = get(url, headers=_headers)
+            break
+        except Exception as e:
+            print(f"请求失败，错误信息：{e}")
+    return _response.content.decode("utf8", "ignore")
 
 
 def get_chapter_table(url):
@@ -178,5 +184,5 @@ def download_book(url):
 
 if __name__ == "__main__":
     # 待抓取的URL
-    url = "http://www.cxbz958.org/doukai/index.html"
+    url = "http://www.cxbz958.org/wudiliuhuangzi/"
     download_book(url)
