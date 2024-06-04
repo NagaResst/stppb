@@ -1,3 +1,4 @@
+import re
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlparse
 
@@ -87,6 +88,18 @@ def get_chapter_text(chapter):
     print(f"获取到章节 {chapter['chapter']}  章节长度 {chapter['chapter_text_length']}")
 
 
+def remove_content_with_regex(input_string, pattern):
+    """
+    使用正则表达式从字符串中移除匹配到的内容。
+
+    :param input_string: 原始字符串
+    :param pattern: 正则表达式模式，用于匹配需要移除的内容
+    :return: 处理后的字符串
+    """
+    # 使用re.sub函数进行替换，将匹配到的部分替换为空字符串，即移除
+    return re.sub(pattern, '', input_string)
+
+
 def text_filter(page_text):
     """
     过滤给定网页文本中的特定元素，并进行格式化处理。
@@ -109,9 +122,10 @@ def text_filter(page_text):
 
     # 替换特定的空格和字符串，为后续的文本处理做准备
     page_text = page_text.text.replace("　", "\n")
-    page_text = page_text.replace("        ", "\n")
-    page_text = page_text.replace("天才一秒记住本站地址：www.2mcnxs.com。顶点小说手机版阅读网址：2mcnxs.com", "")
-    page_text = page_text.replace("请记住本书首发域名：www.cxbz958.org。鬼吹灯手机版阅读网址：m.cxbz958.org", "")
+    page_text = page_text.replace(" ", "\n")
+    regex_pattern = [r'请记住本书首发域名.+org', r'http://www\.cxbz958.+\.html']
+    for regex in regex_pattern:
+        page_text = remove_content_with_regex(page_text, regex)
 
     lines = []
     # 对处理后的文本去除多余的空行
@@ -184,5 +198,5 @@ def download_book(url):
 
 if __name__ == "__main__":
     # 待抓取的URL
-    url = "http://www.cxbz958.org/wudiliuhuangzi/"
+    url = "http://www.cxbz958.org/conglingkaishi/"
     download_book(url)
