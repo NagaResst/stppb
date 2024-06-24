@@ -60,11 +60,13 @@ def get_chapter_table(url):
     _html_content = request_data(url)  # 从URL获取HTML内容
     _soup = BeautifulSoup(_html_content, "html.parser")  # 解析HTML内容
     # 找到章节列表的HTML元素
-    titles = _soup.find_all("div", class_="listmain")[0].find_all("dd")
+    # titles = _soup.find_all("div", class_="listmain")[0].find_all("dd")
+    titles = _soup.find_all("div", attrs={'id': 'list'})[0].find_all("dd")
     for title in titles:
         # 提取章节名和URL，并添加到章节表中
         _chapter_table.append({"chapter": title.text.strip(), "url": (base_url + title.next.attrs['href'])})
-    return _chapter_table
+        # _chapter_table.append({"chapter": title.text.strip(), "url": (base_url + title.contents[1].get('href'))})   # http://www.ibiquzw.org/
+    return _chapter_table[12:]  # 跳过最新更新章节
 
 
 def get_chapter_text(chapter):
@@ -81,6 +83,7 @@ def get_chapter_text(chapter):
     _web_text = request_data(chapter["url"])
     # 使用ID为"content"且class为"showtxt"的div元素获取章节内容
     _contents = BeautifulSoup(_web_text, "html.parser").find_all("div", id="content", class_="showtxt")[0]
+    # _contents = BeautifulSoup(_web_text, "html.parser").find_all("div", id="content")[0]  # http://www.ibiquzw.org/
     # 对获取到的内容进行过滤，并将过滤后的文本内容存储在chapter字典的"chapter_text"键中
     chapter["chapter_text"] = text_filter(_contents)
     chapter["chapter_text_length"] = count_valid_characters(chapter["chapter_text"])
@@ -123,6 +126,11 @@ def text_filter(page_text):
     # 替换特定的空格和字符串，为后续的文本处理做准备
     page_text = page_text.text.replace("　", "\n")
     page_text = page_text.replace(" ", "\n")
+    page_text = page_text.replace("1357924?6810ggggggggggd", "\n")
+    page_text = page_text.replace("天才一秒记住本站地址：[爱笔楼]", "\n")
+    page_text = page_text.replace("章节错误,点此报送(免注册),", "\n")
+    page_text = page_text.replace("报送后维护人员会在两分钟内校正章节内容,请耐心等待。", "\n")
+    page_text = page_text.replace("http://www.ibiquzw.org/最快更新！无广告！", "\n")
     regex_pattern = [r'请记住本书首发域名.+org', r'http://www\.cxbz958.+\.html']
     for regex in regex_pattern:
         page_text = remove_content_with_regex(page_text, regex)
@@ -191,12 +199,13 @@ def download_book(url):
     # 将所有章节文本写入一个文本文件
     with open(f"{book_name}_{book_author}.txt", "a", encoding="utf-8") as f:
         f.write(f"《{book_name}》    作者： {book_author}")
-        for chapter in chapter_table[12:]:  # 跳过最新更新章节
+        for chapter in chapter_table:
             f.write(f"\n\n\n{chapter['chapter']}\n本章字数： {chapter['chapter_text_length']}\n\n")  # 每章之前添加标题和空行
             f.write(chapter["chapter_text"])
 
 
 if __name__ == "__main__":
     # 待抓取的URL
-    url = "http://www.cxbz958.org/conglingkaishi/"
+    # url = "http://www.cxbz958.org/conglingkaishi/"
+    url = "http://www.ibiquzw.org/41_41800/"
     download_book(url)
