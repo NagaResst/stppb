@@ -55,6 +55,8 @@ def get_chapter_table(url):
     返回值:
     list - 包含章节名和对应URL的字典列表
     """
+    global site_type
+
     base_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
     _chapter_table = []
     _html_content = request_data(url)  # 从URL获取HTML内容
@@ -64,9 +66,14 @@ def get_chapter_table(url):
     titles = _soup.find_all("div", attrs={'id': 'list'})[0].find_all("dd")
     for title in titles:
         # 提取章节名和URL，并添加到章节表中
-        _chapter_table.append({"chapter": title.text.strip(), "url": (base_url + title.next.attrs['href'])})
-        # _chapter_table.append({"chapter": title.text.strip(), "url": (base_url + title.contents[1].get('href'))})   # http://www.ibiquzw.org/
-    return _chapter_table[12:]  # 跳过最新更新章节
+        if site_type == "biqu_new":
+            _chapter_table.append({"chapter": title.text.strip(), "url": (base_url + title.contents[1].get('href'))})
+        elif site_type == "guichuideng" or site_type == "biqu_old":
+            _chapter_table.append({"chapter": title.text.strip(), "url": (base_url + title.next.attrs['href'])})
+    if site_type == "biqu_old":
+        return _chapter_table
+    else:
+        return _chapter_table[12:]  # 跳过最新更新章节
 
 
 def get_chapter_text(chapter):
@@ -79,11 +86,15 @@ def get_chapter_text(chapter):
     返回值:
     - 无返回值，但会将获取到的章节文本内容存储在chapter字典的"chapter_text"键中。
     """
+    global site_type
+
     # 从指定URL请求章节数据
     _web_text = request_data(chapter["url"])
     # 使用ID为"content"且class为"showtxt"的div元素获取章节内容
-    _contents = BeautifulSoup(_web_text, "html.parser").find_all("div", id="content", class_="showtxt")[0]
-    # _contents = BeautifulSoup(_web_text, "html.parser").find_all("div", id="content")[0]  # http://www.ibiquzw.org/
+    if site_type == "biqu_old" or site_type == "biqu_new":
+        _contents = BeautifulSoup(_web_text, "html.parser").find_all("div", id="content")[0]
+    elif site_type == "guichuideng":
+        _contents = BeautifulSoup(_web_text, "html.parser").find_all("div", id="content", class_="showtxt")[0]
     # 对获取到的内容进行过滤，并将过滤后的文本内容存储在chapter字典的"chapter_text"键中
     chapter["chapter_text"] = text_filter(_contents)
     chapter["chapter_text_length"] = count_valid_characters(chapter["chapter_text"])
@@ -127,11 +138,12 @@ def text_filter(page_text):
     page_text = page_text.text.replace("　", "\n")
     page_text = page_text.replace(" ", "\n")
     page_text = page_text.replace("1357924?6810ggggggggggd", "\n")
+    page_text = page_text.replace(".bqkan8..bqkan8.", "\n")
     page_text = page_text.replace("天才一秒记住本站地址：[爱笔楼]", "\n")
     page_text = page_text.replace("章节错误,点此报送(免注册),", "\n")
     page_text = page_text.replace("报送后维护人员会在两分钟内校正章节内容,请耐心等待。", "\n")
     page_text = page_text.replace("http://www.ibiquzw.org/最快更新！无广告！", "\n")
-    regex_pattern = [r'请记住本书首发域名.+org', r'http://www\.cxbz958.+\.html']
+    regex_pattern = [r'请记住本书首发域名.+org', r'http://www\.cxbz958.+\.html', r'\(https://\.bqkan8.+\.html\)']
     for regex in regex_pattern:
         page_text = remove_content_with_regex(page_text, regex)
 
@@ -205,7 +217,20 @@ def download_book(url):
 
 
 if __name__ == "__main__":
+    site_type_list = {
+        "biqu_old": ["www.xbiquzw.com", "www.477zw3.com", "www.sbooktxt.xyz"],
+        "biqu_new": ["www.ibiquzw.org"],
+        "guicuideng": ["www.cxbz958.org"]
+    }
+
     # 待抓取的URL
     # url = "http://www.cxbz958.org/conglingkaishi/"
-    url = "http://www.ibiquzw.org/41_41800/"
+    url = "https://www.sbooktxt.xyz/103_103353/"
+
+    site_type = None
+
+    for _type, site_list in site_type_list.items():
+        if urlparse(url).netloc in site_list:
+            site_type = _type
+
     download_book(url)
