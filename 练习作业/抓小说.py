@@ -218,8 +218,8 @@ def download_book(url):
 
 if __name__ == "__main__":
     site_type_list = {
-        "biqu_old": ["www.xbiquzw.com", "www.477zw3.com", "www.sbooktxt.xyz"],
-        "biqu_new": ["www.ibiquzw.org"],
+        "biqu_old": ["www.xbiquzw.com", "www.477zw3.com", "www.sbooktxt.xyz", "www.x81zw2.com"],
+        "biqu_new": ["www.ibiquzw.org", "www.lingyutxt5.com"],
         "guicuideng": ["www.cxbz958.org"]
     }
 
